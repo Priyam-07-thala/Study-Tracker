@@ -18,6 +18,10 @@ class SubjectCreate(BaseModel):
     description: str | None = None
     user_id: int = 1
 
+class SubjectEditRequest(BaseModel):
+    name: str
+    description: str | None = None
+
 class SubjectOut(BaseModel):
     id: int
     user_id: int
@@ -47,6 +51,9 @@ class LectureOut(BaseModel):
         obj = cls.model_validate(lecture)
         obj.youtube_url = f"https://www.youtube.com/watch?v={lecture.video_id}"
         return obj
+
+class LectureEditRequest(BaseModel):
+    title: str
 
 class LectureCompleteRequest(BaseModel):
     completed: bool = True

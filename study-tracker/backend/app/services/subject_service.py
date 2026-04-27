@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from fastapi import HTTPException
 from app.models.models import Subject, Lecture, User
-from app.models.schemas import SubjectCreate, SubjectOut
+from app.models.schemas import SubjectCreate, SubjectOut, SubjectEditRequest
 
 
 def _ensure_default_user(db: Session) -> User:
@@ -48,3 +48,17 @@ def get_subject_or_404(db: Session, subject_id: int) -> Subject:
     if not subject:
         raise HTTPException(status_code=404, detail=f"Subject {subject_id} not found")
     return subject
+
+def update_subject(db: Session, subject_id: int, payload: SubjectEditRequest) -> SubjectOut:
+    subject = get_subject_or_404(db, subject_id)
+    subject.name = payload.name
+    subject.description = payload.description
+    db.commit()
+    db.refresh(subject)
+    return _enrich_subject(db, subject)
+
+def delete_subject(db: Session, subject_id: int):
+    subject = get_subject_or_404(db, subject_id)
+    db.delete(subject)
+    db.commit()
+    return {"message": "Subject deleted successfully"}

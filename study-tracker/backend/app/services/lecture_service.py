@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, text
 from fastapi import HTTPException
-from app.models.models import Lecture
-from app.models.schemas import LectureOut
+from app.models.models import Lecture, Subject
+from app.models.schemas import LectureOut, LectureEditRequest
 
 
 def get_lectures_for_subject(db: Session, subject_id: int) -> list[LectureOut]:
@@ -76,3 +76,42 @@ def batch_mark_lectures(db: Session, lecture_ids: list[int], completed: bool) ->
         db.rollback()
         raise
     return [LectureOut.from_orm_with_url(lec) for lec in lectures]
+
+def update_lecture(db: Session, lecture_id: int, payload: LectureEditRequest) -> LectureOut:
+    lecture = db.get(Lecture, lecture_id)
+    if not lecture:
+        raise HTTPException(status_code=404, detail=f"Lecture {lecture_id} not found")
+    lecture.title = payload.title
+    db.commit()
+    db.refresh(lecture)
+    return LectureOut.from_orm_with_url(lecture)
+
+def delete_lecture(db: Session, lecture_id: int):
+    lecture = db.get(Lecture, lecture_id)
+    if not lecture:
+        raise HTTPException(status_code=404, detail=f"Lecture {lecture_id} not found")
+    subject_id = lecture.subject_id
+    db.delete(lecture)
+    
+    # reorder lectures? Not strictly necessary unless order is critical to be sequential, but we can just leave gaps.
+    db.commit()
+    
+    pct = _compute_progress(db, subject_id)
+    _upsert_progress_snapshot(db, subject_id, pct)
+    db.commit()
+    return {"message": "Lecture deleted successfully"}
+
+def delete_all_lectures(db: Session, subject_id: int):
+    subject = db.get(Subject, subject_id)
+    if not subject:
+        raise HTTPException(status_code=404, detail=f"Subject {subject_id} not found")
+    
+    # Delete all lectures
+    db.execute(text("DELETE FROM lectures WHERE subject_id = :sid"), {"sid": subject_id})
+    db.commit()
+    
+    # Reset progress to 0 for today
+    _upsert_progress_snapshot(db, subject_id, 0.0)
+    db.commit()
+    
+    return {"message": "All lectures cleared"}
