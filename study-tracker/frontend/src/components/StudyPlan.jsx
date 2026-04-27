@@ -167,9 +167,20 @@ export default function StudyPlan({ subjectId, lectures }) {
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600 }}>Full Plan Breakdown</h3>
-          <button onClick={handleGenerate} disabled={generating} style={{ fontSize: '13px', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}>
-            {generating ? 'Regenerating...' : 'Regenerate Plan'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Hours/day:</label>
+            <input
+              type="number"
+              value={hoursInput}
+              onChange={e => setHoursInput(parseFloat(e.target.value))}
+              step="0.5"
+              min="0.5"
+              style={{ padding: '4px 8px', width: '60px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontSize: '13px' }}
+            />
+            <button onClick={handleGenerate} disabled={generating} style={{ fontSize: '13px', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}>
+              {generating ? 'Regenerating...' : 'Regenerate Plan'}
+            </button>
+          </div>
         </div>
         
         <div style={{ display: 'grid', gap: '16px' }}>
