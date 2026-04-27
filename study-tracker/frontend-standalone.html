@@ -417,7 +417,7 @@ function renderDashboard(){
   else if(!subjects.length){body=`<div class="empty"><div class="empty-icon">📚</div><div class="empty-title">No subjects yet</div><div class="empty-sub">Create your first subject and import a YouTube playlist</div><button class="btn" onclick="openCreateModal()">Create Subject</button></div>`;}
   else{body=`<div class="cards">${subjects.map((s,i)=>{
     const color=COLORS[i%COLORS.length];const p=s.completion_percentage||0;
-    const escapedName = s.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    const escapedName = s.name.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
     return `<div class="card" data-sid="${s.id}"
       onmouseenter="this.style.borderColor='${color}60';this.style.boxShadow='0 6px 28px ${color}12'"
       onmouseleave="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
@@ -425,8 +425,8 @@ function renderDashboard(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div class="card-name">${esc(s.name)}</div>
         <div style="display:flex;gap:4px;margin-top:6px">
-          <button class="btn-ghost" style="padding:2px 5px;border:none" onclick="event.stopPropagation();doEditSubject(${s.id},'${escapedName}')" title="Edit Subject">✎</button>
-          <button class="btn-ghost" style="padding:2px 5px;border:none" onclick="event.stopPropagation();doDeleteSubject(${s.id})" title="Delete Subject">✖</button>
+          <button class="btn-ghost" style="padding:2px 5px;border:none" data-action="edit-subject" data-sid="${s.id}" data-sname="${escapedName}" title="Edit Subject">✎</button>
+          <button class="btn-ghost" style="padding:2px 5px;border:none" data-action="delete-subject" data-sid="${s.id}" title="Delete Subject">✖</button>
         </div>
       </div>
       ${s.description?`<div class="card-desc">${esc(s.description)}</div>`:'<div style="height:8px"></div>'}
@@ -462,7 +462,7 @@ function renderSubjectPage(){
         const isPending=S.pending.has(lec.id);
         const chkStyle=lec.completed?`background:${color};border-color:${color}`:'';
         const chkInner=isPending?mkSpinner(13):lec.completed?`<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#000" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`:'';
-        const escapedTitle = lec.title.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const escapedTitle = lec.title.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
         return `<div class="lec-row${lec.completed?' done':''}">
           <div class="chk${lec.completed?' on':''}" style="${chkStyle}" data-lid="${lec.id}" data-completed="${lec.completed}">${chkInner}</div>
           <div style="flex:1;min-width:0">
@@ -470,8 +470,8 @@ function renderSubjectPage(){
             ${lec.completed_at?`<div class="lec-date">completed ${fmtDate(lec.completed_at)}</div>`:''}
           </div>
           <div style="display:flex;gap:4px;opacity:0.7">
-            <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" onclick="event.stopPropagation();doEditLecture(${lec.id},'${escapedTitle}')" title="Edit Lecture">✎</button>
-            <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" onclick="event.stopPropagation();doDeleteLecture(${lec.id})" title="Delete Lecture">✖</button>
+            <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" data-action="edit-lecture" data-lid="${lec.id}" data-ltitle="${escapedTitle}" title="Edit Lecture">✎</button>
+            <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" data-action="delete-lecture" data-lid="${lec.id}" title="Delete Lecture">✖</button>
           </div>
           <span class="lec-num">#${lec.lecture_order+1}</span>
           <a class="yt-link" href="${lec.youtube_url}" target="_blank">▶ YT</a>
@@ -554,12 +554,12 @@ function renderSubjectPage(){
       panel=`<div>${statusBanner}${todaysTasksHtml}${fullPlanHtml}</div>`;
     }
   }
-  const escapedSubjectName = subject.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+  const escapedSubjectName = subject.name.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
   return `<div class="page" style="max-width:880px"><div class="subject-hdr"><div style="flex:1">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
       <h1 style="margin-bottom:0">${esc(subject.name)}</h1>
-      <button class="btn-ghost" style="padding:4px 8px;border:none" onclick="doEditSubject(${subject.id}, '${escapedSubjectName}')" title="Edit Subject">✎</button>
-      <button class="btn-ghost" style="padding:4px 8px;border:none" onclick="doDeleteSubject(${subject.id})" title="Delete Subject">✖</button>
+      <button class="btn-ghost" style="padding:4px 8px;border:none" data-action="edit-subject" data-sid="${subject.id}" data-sname="${escapedSubjectName}" title="Edit Subject">✎</button>
+      <button class="btn-ghost" style="padding:4px 8px;border:none" data-action="delete-subject" data-sid="${subject.id}" title="Delete Subject">✖</button>
     </div>
     ${subject.description?`<div class="subtitle">${esc(subject.description)}</div>`:''}
     <div class="subject-prog-row">
@@ -567,7 +567,7 @@ function renderSubjectPage(){
       <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${done} / ${lectures.length} lectures</span>
     </div></div>
     <div style="display:flex;gap:8px">
-      ${lectures.length ? `<button class="btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="doClearLectures(${subject.id})">Clear Lectures</button>` : ''}
+      ${lectures.length ? `<button class="btn-ghost" style="border-color:var(--red);color:var(--red)" data-action="clear-lectures" data-sid="${subject.id}">Clear Lectures</button>` : ''}
       <button class="btn-ghost" onclick="openImportModal()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.4a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z"/>
@@ -579,6 +579,17 @@ function renderSubjectPage(){
   </div>${tabs}${panel}</div>`;
 }
 document.getElementById('app').addEventListener('click',function(e){
+  const actionBtn = e.target.closest('button[data-action]');
+  if (actionBtn) {
+    e.stopPropagation();
+    const action = actionBtn.dataset.action;
+    if (action === 'edit-subject') doEditSubject(parseInt(actionBtn.dataset.sid), actionBtn.dataset.sname);
+    else if (action === 'delete-subject') doDeleteSubject(parseInt(actionBtn.dataset.sid));
+    else if (action === 'edit-lecture') doEditLecture(parseInt(actionBtn.dataset.lid), actionBtn.dataset.ltitle);
+    else if (action === 'delete-lecture') doDeleteLecture(parseInt(actionBtn.dataset.lid));
+    else if (action === 'clear-lectures') doClearLectures(parseInt(actionBtn.dataset.sid));
+    return;
+  }
   const card=e.target.closest('.card[data-sid]');
   if(card){goSubject(parseInt(card.dataset.sid));return;}
   const chk=e.target.closest('.chk[data-lid]');
