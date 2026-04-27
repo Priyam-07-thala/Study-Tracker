@@ -1,0 +1,48 @@
+-- Study Tracker - MySQL Schema
+-- SQLAlchemy auto-creates these on startup via Base.metadata.create_all()
+-- Run manually only if needed
+
+CREATE DATABASE IF NOT EXISTS study_tracker CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE study_tracker;
+
+CREATE TABLE IF NOT EXISTS users (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    username    VARCHAR(100) NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_users_username (username)
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO users (id, username) VALUES (1, 'demo');
+
+CREATE TABLE IF NOT EXISTS subjects (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL,
+    name        VARCHAR(255) NOT NULL,
+    description VARCHAR(1000),
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_subjects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS lectures (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id      INT NOT NULL,
+    title           VARCHAR(500) NOT NULL,
+    video_id        VARCHAR(50) NOT NULL,
+    lecture_order   INT NOT NULL,
+    completed       TINYINT(1) NOT NULL DEFAULT 0,
+    completed_at    DATETIME,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_lectures_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    CONSTRAINT uq_subject_video UNIQUE (subject_id, video_id),
+    INDEX ix_lectures_subject_id (subject_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS progress_snapshots (
+    id                      INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id              INT NOT NULL,
+    snapshot_date           DATE NOT NULL,
+    completion_percentage   FLOAT NOT NULL,
+    CONSTRAINT fk_progress_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    CONSTRAINT uq_subject_date UNIQUE (subject_id, snapshot_date),
+    INDEX ix_progress_subject_date (subject_id, snapshot_date)
+) ENGINE=InnoDB;
