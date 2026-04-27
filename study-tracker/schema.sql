@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS lectures (
     title           VARCHAR(500) NOT NULL,
     video_id        VARCHAR(50) NOT NULL,
     lecture_order   INT NOT NULL,
+    duration        INT NOT NULL DEFAULT 0,
     completed       TINYINT(1) NOT NULL DEFAULT 0,
     completed_at    DATETIME,
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -45,4 +46,24 @@ CREATE TABLE IF NOT EXISTS progress_snapshots (
     CONSTRAINT fk_progress_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
     CONSTRAINT uq_subject_date UNIQUE (subject_id, snapshot_date),
     INDEX ix_progress_subject_date (subject_id, snapshot_date)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS study_plans (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id      INT NOT NULL,
+    hours_per_day   FLOAT NOT NULL,
+    start_date      DATE NOT NULL,
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_study_plans_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_study_plans_subject (subject_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS study_plan_days (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    plan_id         INT NOT NULL,
+    day_number      INT NOT NULL,
+    lecture_ids     JSON NOT NULL,
+    total_duration  INT NOT NULL DEFAULT 0,
+    CONSTRAINT fk_study_plan_days_plan FOREIGN KEY (plan_id) REFERENCES study_plans(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_plan_day (plan_id, day_number)
 ) ENGINE=InnoDB;

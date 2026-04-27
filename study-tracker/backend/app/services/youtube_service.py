@@ -18,6 +18,13 @@ def _extract_playlist_id(url: str) -> str:
         raise HTTPException(status_code=422, detail="Could not extract playlist ID from URL")
     return match.group(1)
 
+def _parse_iso_duration(duration_str: str) -> int:
+    match = re.match(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", duration_str)
+    if not match:
+        return 0
+    h, m, s = match.groups()
+    return int(h or 0) * 3600 + int(m or 0) * 60 + int(s or 0)
+
 
 def _fetch_all_playlist_items(playlist_id: str) -> list[dict]:
     items: list[dict] = []
@@ -46,10 +53,29 @@ def _fetch_all_playlist_items(playlist_id: str) -> list[dict]:
                 position = snippet.get("position", 0)
                 if not video_id or title in ("Deleted video", "Private video"):
                     continue
-                items.append({"video_id": video_id, "title": title, "position": position})
+                items.append({"video_id": video_id, "title": title, "position": position, "duration": 0})
             next_page_token = data.get("nextPageToken")
             if not next_page_token:
                 break
+        
+        # Batch fetch durations
+        video_ids = [item["video_id"] for item in items]
+        for i in range(0, len(video_ids), MAX_RESULTS_PER_PAGE):
+            batch_ids = video_ids[i:i + MAX_RESULTS_PER_PAGE]
+            resp = client.get(
+                f"{YOUTUBE_API_BASE}/videos",
+                params={"part": "contentDetails", "id": ",".join(batch_ids), "key": settings.YOUTUBE_API_KEY}
+            )
+            if resp.status_code == 200:
+                videos_data = resp.json().get("items", [])
+                duration_map = {
+                    v["id"]: _parse_iso_duration(v.get("contentDetails", {}).get("duration", ""))
+                    for v in videos_data
+                }
+                for item in items:
+                    if item["video_id"] in duration_map:
+                        item["duration"] = duration_map[item["video_id"]]
+
     return items
 
 
@@ -81,6 +107,7 @@ def import_playlist(db: Session, payload: PlaylistImportRequest) -> PlaylistImpo
                 title=item["title"],
                 video_id=item["video_id"],
                 lecture_order=base_order + item["position"],
+                duration=item.get("duration", 0),
                 completed=False,
             )
             db.add(lecture)

@@ -36,6 +36,7 @@ class LectureOut(BaseModel):
     title: str
     video_id: str
     lecture_order: int
+    duration: int
     completed: bool
     completed_at: datetime | None
     youtube_url: str = ""
@@ -79,3 +80,35 @@ class ProgressResponse(BaseModel):
     snapshots: list[ProgressSnapshotOut]
     current_completion: float
     predicted_completion_date: date | None = None
+
+
+class PlanGenerateRequest(BaseModel):
+    hours_per_day: float
+
+
+class StudyPlanDayOut(BaseModel):
+    id: int
+    plan_id: int
+    day_number: int
+    lecture_ids: list[int]
+    total_duration: int
+    model_config = {"from_attributes": True}
+
+
+class StudyPlanOut(BaseModel):
+    id: int
+    subject_id: int
+    hours_per_day: float
+    start_date: date
+    created_at: datetime
+    days: list[StudyPlanDayOut] = []
+    model_config = {"from_attributes": True}
+
+
+class PlanStatusOut(BaseModel):
+    status: str  # "ahead", "behind", "on_track"
+    deviation_minutes: int
+    expected_duration: int
+    actual_duration: int
+    avg_time_per_day_minutes: float
+    estimated_completion_date: date | None

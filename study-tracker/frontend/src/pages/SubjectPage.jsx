@@ -5,6 +5,7 @@ import ImportPlaylistModal from '../components/ImportPlaylistModal'
 import ProgressChart from '../components/ProgressChart'
 import ProgressBar from '../components/ProgressBar'
 import Spinner from '../components/Spinner'
+import StudyPlan from '../components/StudyPlan'
 import { useLectures } from '../hooks/useLectures'
 import { useProgress } from '../hooks/useProgress'
 import { getSubjects } from '../api/subjects'
@@ -75,11 +76,15 @@ export default function SubjectPage() {
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
         <button onClick={() => setActiveTab('lectures')} style={tabStyle('lectures')}>Lectures {totalCount > 0 && `(${totalCount})`}</button>
+        <button onClick={() => setActiveTab('plan')} style={tabStyle('plan')}>Study Plan</button>
         <button onClick={() => setActiveTab('progress')} style={tabStyle('progress')}>Progress Chart</button>
       </div>
 
       {activeTab === 'lectures' && (
         <LectureList lectures={lectures} loading={lecturesLoading} error={lecturesError} onToggle={handleToggle} pendingIds={pendingIds} />
+      )}
+      {activeTab === 'plan' && (
+        <StudyPlan subjectId={subjectId} lectures={lectures} />
       )}
       {activeTab === 'progress' && (
         progressLoading

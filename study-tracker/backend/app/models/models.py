@@ -4,6 +4,7 @@ from sqlalchemy import (
     ForeignKey, UniqueConstraint, Index, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON
 from app.core.database import Base
 
 
@@ -25,6 +26,7 @@ class Subject(Base):
     user: Mapped["User"] = relationship("User", back_populates="subjects")
     lectures: Mapped[list["Lecture"]] = relationship("Lecture", back_populates="subject", cascade="all, delete-orphan", order_by="Lecture.lecture_order")
     progress_snapshots: Mapped[list["ProgressSnapshot"]] = relationship("ProgressSnapshot", back_populates="subject", cascade="all, delete-orphan")
+    study_plan: Mapped["StudyPlan"] = relationship("StudyPlan", back_populates="subject", cascade="all, delete-orphan", uselist=False)
 
 
 class Lecture(Base):
@@ -34,6 +36,7 @@ class Lecture(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     video_id: Mapped[str] = mapped_column(String(50), nullable=False)
     lecture_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    duration: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
@@ -54,4 +57,28 @@ class ProgressSnapshot(Base):
     __table_args__ = (
         UniqueConstraint("subject_id", "snapshot_date", name="uq_subject_date"),
         Index("ix_progress_subject_date", "subject_id", "snapshot_date"),
+    )
+
+
+class StudyPlan(Base):
+    __tablename__ = "study_plans"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject_id: Mapped[int] = mapped_column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False, unique=True)
+    hours_per_day: Mapped[float] = mapped_column(Float, nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    subject: Mapped["Subject"] = relationship("Subject", back_populates="study_plan")
+    days: Mapped[list["StudyPlanDay"]] = relationship("StudyPlanDay", back_populates="plan", cascade="all, delete-orphan", order_by="StudyPlanDay.day_number")
+
+
+class StudyPlanDay(Base):
+    __tablename__ = "study_plan_days"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    plan_id: Mapped[int] = mapped_column(Integer, ForeignKey("study_plans.id", ondelete="CASCADE"), nullable=False)
+    day_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    lecture_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    total_duration: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    plan: Mapped["StudyPlan"] = relationship("StudyPlan", back_populates="days")
+    __table_args__ = (
+        UniqueConstraint("plan_id", "day_number", name="uq_plan_day"),
     )
