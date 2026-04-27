@@ -122,9 +122,10 @@ const API = 'http://localhost:8000';
 const COLORS = ['#7c6af7','#3ddc84','#f5c542','#ff6b6b','#60b4ff','#ff9f40'];
 const S = {
   page:'dashboard', subject:null, subjectColor:'',
-  subjects:[], lectures:[], progress:null, activeTab:'lectures',
-  loadingSubjects:true, loadingLectures:false,
+  subjects:[], lectures:[], progress:null, plan:null, planStatus:null, activeTab:'lectures',
+  loadingSubjects:true, loadingLectures:false, loadingPlan:false,
   subjectError:null, lectureError:null, pending:new Set(),
+  hoursInput: 2, generatingPlan: false
 };
 function set(patch){Object.assign(S,patch);render();}
 async function req(method,path,body){
@@ -145,9 +146,49 @@ async function loadLectures(id){
 async function loadProgress(id){
   try{const progress=await req('GET','/progress/'+id);set({progress});}catch(e){}
 }
+async function loadPlan(id){
+  set({loadingPlan:true});
+  try{
+    const plan=await req('GET','/plan/'+id);
+    const planStatus=await req('GET','/plan/status/'+id);
+    set({plan,planStatus,loadingPlan:false});
+  }catch(e){
+    set({plan:null,planStatus:null,loadingPlan:false});
+  }
+}
+async function doGeneratePlan(){
+  if(!S.subject)return;
+  set({generatingPlan:true});
+  try{
+    await req('POST','/plan/generate/'+S.subject.id,{hours_per_day:S.hoursInput});
+    await loadPlan(S.subject.id);
+  }catch(e){
+    alert('Failed to generate plan: '+e.message);
+  }finally{
+    set({generatingPlan:false});
+  }
+}
+async function doAdjustPlan(){
+  if(!S.subject)return;
+  set({generatingPlan:true});
+  try{
+    await req('POST','/plan/adjust/'+S.subject.id);
+    await loadPlan(S.subject.id);
+  }catch(e){
+    alert('Failed to adjust plan: '+e.message);
+  }finally{
+    set({generatingPlan:false});
+  }
+}
+function formatDuration(sec){
+  if(!sec)return'0m';
+  const h=Math.floor(sec/3600);
+  const m=Math.floor((sec%3600)/60);
+  return h>0?`${h}h ${m}m`:`${m}m`;
+}
 function goHome(){
   document.getElementById('nav-back').style.display='none';
-  set({page:'dashboard',subject:null,lectures:[],progress:null,activeTab:'lectures'});
+  set({page:'dashboard',subject:null,lectures:[],progress:null,plan:null,planStatus:null,activeTab:'lectures'});
   loadSubjects();
 }
 function goSubject(subjectId){
@@ -155,9 +196,10 @@ function goSubject(subjectId){
   if(!subject)return;
   const color=COLORS[S.subjects.indexOf(subject)%COLORS.length];
   document.getElementById('nav-back').style.display='block';
-  set({page:'subject',subject,subjectColor:color,lectures:[],progress:null,activeTab:'lectures'});
+  set({page:'subject',subject,subjectColor:color,lectures:[],progress:null,plan:null,planStatus:null,activeTab:'lectures'});
   loadLectures(subject.id);
   loadProgress(subject.id);
+  loadPlan(subject.id);
 }
 async function toggleLecture(id,completed){
   const pending=new Set(S.pending);pending.add(id);
@@ -352,6 +394,7 @@ function renderSubjectPage(){
   const p=calcPct(lectures);const done=lectures.filter(l=>l.completed).length;
   const tabs=`<div class="tabs">
     <div class="tab ${activeTab==='lectures'?'on':''}" onclick="switchTab('lectures')">Lectures${lectures.length?' ('+lectures.length+')':''}</div>
+    <div class="tab ${activeTab==='plan'?'on':''}" onclick="switchTab('plan')">Study Plan</div>
     <div class="tab ${activeTab==='progress'?'on':''}" onclick="switchTab('progress')">Progress Chart</div>
   </div>`;
   let panel='';
@@ -374,14 +417,81 @@ function renderSubjectPage(){
           <a class="yt-link" href="${lec.youtube_url}" target="_blank">▶ YT</a>
         </div>`;}).join('')}</div>`;
     }
-  }else{
-    if(!progress){panel=`<div class="no-data" style="display:flex;align-items:center;justify-content:center;gap:10px">${mkSpinner(20)} Loading chart…</div>`;}
-    else if(!progress.snapshots||progress.snapshots.length<2){panel=`<div class="no-data">No progress history yet.<br>Mark some lectures complete to start building your chart.</div>`;}
-    else{
-      const curPct=(progress.current_completion||0).toFixed(1);
-      panel=`<div class="chart-card"><div class="chart-top"><div><div class="chart-sub">PROGRESS OVER TIME</div><div class="chart-big" style="color:${color}">${curPct}%</div></div>
-        ${progress.predicted_completion_date?`<div class="eta-box"><div class="eta-lbl">EST. COMPLETION</div><div class="eta-val">${fmtDate(progress.predicted_completion_date)}</div></div>`:''}
-      </div><canvas id="prog-canvas" style="width:100%;display:block;border-radius:4px"></canvas></div>`;
+  }else if(activeTab==='plan'){
+    if(S.loadingPlan){panel=`<div style="display:flex;justify-content:center;padding:48px">${mkSpinner(32)}</div>`;}
+    else if(!S.plan){
+      panel=`<div class="no-data" style="text-align:center">
+        <h3 style="margin-bottom:8px;color:var(--text);font-size:16px">No Study Plan Yet</h3>
+        <p style="margin-bottom:16px;font-size:13px">Generate a smart study plan based on video durations to stay on track.</p>
+        <div style="display:inline-flex;align-items:center;gap:8px">
+          <label style="font-size:12px;color:var(--muted)">Hours per day:</label>
+          <input type="number" step="0.5" min="0.5" value="${S.hoursInput}" onchange="set({hoursInput:parseFloat(this.value)})" style="width:60px;padding:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--r)"/>
+          <button class="btn" onclick="doGeneratePlan()" ${S.generatingPlan?'disabled':''}>${S.generatingPlan?'Generating...':'Generate Plan'}</button>
+        </div>
+      </div>`;
+    }else{
+      const plan = S.plan;
+      const status = S.planStatus;
+      const daysPassed = Math.max(1, Math.floor((new Date() - new Date(plan.start_date)) / (1000 * 60 * 60 * 24)) + 1);
+      const todaysPlan = plan.days.find(d => d.day_number === daysPassed);
+      
+      let statusBanner='';
+      if(status){
+        const isAhead = status.status === 'ahead';
+        const isBehind = status.status === 'behind';
+        const bg = isAhead ? 'rgba(46, 204, 113, 0.1)' : isBehind ? 'rgba(231, 76, 60, 0.1)' : 'var(--bg2)';
+        const borderColor = isAhead ? 'rgba(46, 204, 113, 0.3)' : isBehind ? 'rgba(231, 76, 60, 0.3)' : 'var(--border)';
+        const textColor = isAhead ? '#2ecc71' : isBehind ? '#e74c3c' : 'var(--accent)';
+        const textMsg = isAhead ? '● You are ahead of schedule' : isBehind ? '● You are behind schedule' : '● You are on track';
+        
+        statusBanner=`<div style="display:flex;gap:16px;padding:16px;border-radius:var(--r);background:${bg};border:1px solid ${borderColor};margin-bottom:24px">
+          <div style="flex:1">
+            <h3 style="font-size:15px;font-weight:600;margin-bottom:6px;color:${textColor}">${textMsg}</h3>
+            <p style="font-size:12px;color:var(--muted)">${status.status !== 'on_track' ? `Deviation: ${status.deviation_minutes} minutes. ` : ''}Average speed: ${status.avg_time_per_day_minutes} mins/day.</p>
+            ${status.estimated_completion_date ? `<p style="font-size:12px;color:var(--muted);margin-top:4px">Estimated completion: <strong>${fmtDate(status.estimated_completion_date)}</strong></p>` : ''}
+          </div>
+          ${isBehind ? `<div style="display:flex;align-items:center"><button class="btn-ghost" style="color:#e74c3c;border-color:#e74c3c" onclick="doAdjustPlan()" ${S.generatingPlan?'disabled':''}>${S.generatingPlan?'Adjusting...':'Adjust Plan'}</button></div>` : ''}
+        </div>`;
+      }
+
+      let todaysTasksHtml='';
+      if(todaysPlan){
+        todaysTasksHtml=`<h3 style="font-size:15px;font-weight:600;margin-bottom:12px">Today's Tasks (Day ${daysPassed})</h3>
+        <div style="display:grid;gap:8px;margin-bottom:24px">
+          ${todaysPlan.lecture_ids.map(lId => {
+            const lec = lectures.find(l=>l.id===lId);
+            if(!lec)return'';
+            return `<div style="display:flex;align-items:center;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);opacity:${lec.completed?0.6:1}">
+              <div style="flex:1;overflow:hidden"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:${lec.completed?'line-through':'none'}">${lec.lecture_order+1}. ${esc(lec.title)}</div></div>
+              <div style="color:var(--muted);font-size:12px;margin-left:16px">${formatDuration(lec.duration)}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }
+
+      const fullPlanHtml=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="font-size:15px;font-weight:600">Full Plan Breakdown</h3>
+          <button class="btn-ghost" style="padding:4px 8px;font-size:11px" onclick="doGeneratePlan()" ${S.generatingPlan?'disabled':''}>${S.generatingPlan?'Regenerating...':'Regenerate Plan'}</button>
+        </div>
+        <div style="display:grid;gap:12px">
+          ${plan.days.map(day => `
+            <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+                <strong style="font-size:13px">Day ${day.day_number}</strong>
+                <span style="font-size:12px;color:var(--muted)">${formatDuration(day.total_duration)}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px">
+                ${day.lecture_ids.map(lId => {
+                  const lec = lectures.find(l=>l.id===lId);
+                  if(!lec)return'';
+                  return `<div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${lec.completed?'✓ ':'○ '}${lec.lecture_order+1}. ${esc(lec.title)}</div>`;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      
+      panel=`<div>${statusBanner}${todaysTasksHtml}${fullPlanHtml}</div>`;
     }
   }
   return `<div class="page" style="max-width:880px"><div class="subject-hdr"><div style="flex:1">
