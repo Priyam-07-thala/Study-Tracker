@@ -1,12 +1,21 @@
 import React, { useState } from 'react'
 import SubjectCard from '../components/SubjectCard'
 import CreateSubjectModal from '../components/CreateSubjectModal'
+import EditSubjectModal from '../components/EditSubjectModal'
 import Spinner from '../components/Spinner'
 import { useSubjects } from '../hooks/useSubjects'
 
 export default function Dashboard() {
-  const { subjects, loading, error, addSubject } = useSubjects()
-  const [showModal, setShowModal] = useState(false)
+  const { subjects, loading, error, addSubject, editSubjectAction, removeSubjectAction } = useSubjects()
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingSubject, setEditingSubject] = useState(null)
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this subject? All associated lectures and progress will be lost.')) {
+      try { await removeSubjectAction(id) }
+      catch (err) { alert('Failed to delete: ' + err.message) }
+    }
+  }
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 24px' }}>
@@ -16,7 +25,7 @@ export default function Dashboard() {
           <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Track your learning progress across all subjects</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowCreateModal(true)}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', fontSize: '14px', fontWeight: 500 }}
           onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-hover)'}
           onMouseLeave={e => e.currentTarget.style.background = 'var(--accent)'}
@@ -50,15 +59,16 @@ export default function Dashboard() {
           <div style={{ fontSize: '40px', marginBottom: '16px' }}>📚</div>
           <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No subjects yet</div>
           <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Create your first subject and import a YouTube playlist</div>
-          <button onClick={() => setShowModal(true)} style={{ padding: '10px 24px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', fontSize: '14px', fontWeight: 500 }}>Create Subject</button>
+          <button onClick={() => setShowCreateModal(true)} style={{ padding: '10px 24px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', fontSize: '14px', fontWeight: 500 }}>Create Subject</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-          {subjects.map((s, i) => <SubjectCard key={s.id} subject={s} index={i} />)}
+          {subjects.map((s, i) => <SubjectCard key={s.id} subject={s} index={i} onEditRequest={() => setEditingSubject(s)} onDeleteRequest={() => handleDelete(s.id)} />)}
         </div>
       )}
 
-      {showModal && <CreateSubjectModal onClose={() => setShowModal(false)} onSubmit={addSubject} />}
+      {showCreateModal && <CreateSubjectModal onClose={() => setShowCreateModal(false)} onSubmit={addSubject} />}
+      {editingSubject && <EditSubjectModal subject={editingSubject} onClose={() => setEditingSubject(null)} onSubmit={editSubjectAction} />}
     </div>
   )
 }

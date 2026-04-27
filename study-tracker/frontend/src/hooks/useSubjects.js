@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getSubjects, createSubject } from '../api/subjects'
+import { getSubjects, createSubject, updateSubject, deleteSubject } from '../api/subjects'
 
 export function useSubjects() {
   const [subjects, setSubjects] = useState([])
@@ -20,5 +20,16 @@ export function useSubjects() {
     return created
   }, [])
 
-  return { subjects, loading, error, refetch: fetchSubjects, addSubject }
+  const editSubjectAction = useCallback(async (id, payload) => {
+    const updated = await updateSubject(id, payload)
+    setSubjects(prev => prev.map(s => s.id === id ? updated : s))
+    return updated
+  }, [])
+
+  const removeSubjectAction = useCallback(async (id) => {
+    await deleteSubject(id)
+    setSubjects(prev => prev.filter(s => s.id !== id))
+  }, [])
+
+  return { subjects, loading, error, refetch: fetchSubjects, addSubject, editSubjectAction, removeSubjectAction }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getLectures, markLectureComplete } from '../api/lectures'
+import { getLectures, markLectureComplete, updateLecture, deleteLecture, deleteSubjectLectures } from '../api/lectures'
 
 export function useLectures(subjectId) {
   const [lectures, setLectures] = useState([])
@@ -30,5 +30,22 @@ export function useLectures(subjectId) {
     }
   }, [])
 
-  return { lectures, loading, error, refetch: fetchLectures, toggleLecture, pendingIds }
+  const editLectureAction = useCallback(async (lectureId, payload) => {
+    const updated = await updateLecture(lectureId, payload)
+    setLectures(prev => prev.map(l => l.id === lectureId ? updated : l))
+    return updated
+  }, [])
+
+  const removeLectureAction = useCallback(async (lectureId) => {
+    await deleteLecture(lectureId)
+    setLectures(prev => prev.filter(l => l.id !== lectureId))
+  }, [])
+
+  const clearLecturesAction = useCallback(async () => {
+    if (!subjectId) return
+    await deleteSubjectLectures(subjectId)
+    setLectures([])
+  }, [subjectId])
+
+  return { lectures, loading, error, refetch: fetchLectures, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction }
 }
