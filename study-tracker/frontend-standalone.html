@@ -254,6 +254,31 @@ async function doDeleteLecture(id) {
     } catch(e) { alert(e.message); }
   }
 }
+async function doMoveLecture(id, direction) {
+  const index = S.lectures.findIndex(l => l.id === id);
+  if (index < 0) return;
+  if (direction === 'up' && index === 0) return;
+  if (direction === 'down' && index === S.lectures.length - 1) return;
+  
+  const newLectures = [...S.lectures];
+  const swapIndex = direction === 'up' ? index - 1 : index + 1;
+  const temp = newLectures[index];
+  newLectures[index] = newLectures[swapIndex];
+  newLectures[swapIndex] = temp;
+  
+  newLectures.forEach((l, i) => l.lecture_order = i);
+  set({ lectures: newLectures });
+  
+  try {
+    const lecture_ids = newLectures.map(l => l.id);
+    const updated = await req('PUT', '/lectures/subject/' + S.subject.id + '/reorder', { lecture_ids });
+    set({ lectures: updated });
+    loadPlan(S.subject.id);
+  } catch (e) {
+    alert(e.message);
+    loadLectures(S.subject.id);
+  }
+}
 async function doClearLectures(subjectId) {
   if (confirm("Clear ALL lectures in this subject?")) {
     try {
@@ -470,6 +495,8 @@ function renderSubjectPage(){
             ${lec.completed_at?`<div class="lec-date">completed ${fmtDate(lec.completed_at)}</div>`:''}
           </div>
           <div style="display:flex;gap:4px;opacity:0.7">
+            <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" data-action="move-up" data-lid="${lec.id}" title="Move Up">↑</button>
+            <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" data-action="move-down" data-lid="${lec.id}" title="Move Down">↓</button>
             <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" data-action="edit-lecture" data-lid="${lec.id}" data-ltitle="${escapedTitle}" title="Edit Lecture">✎</button>
             <button class="btn-ghost" style="padding:3px 6px;border:none;min-width:0" data-action="delete-lecture" data-lid="${lec.id}" title="Delete Lecture">✖</button>
           </div>
@@ -588,6 +615,8 @@ document.getElementById('app').addEventListener('click',function(e){
     else if (action === 'edit-lecture') doEditLecture(parseInt(actionBtn.dataset.lid), actionBtn.dataset.ltitle);
     else if (action === 'delete-lecture') doDeleteLecture(parseInt(actionBtn.dataset.lid));
     else if (action === 'clear-lectures') doClearLectures(parseInt(actionBtn.dataset.sid));
+    else if (action === 'move-up') doMoveLecture(parseInt(actionBtn.dataset.lid), 'up');
+    else if (action === 'move-down') doMoveLecture(parseInt(actionBtn.dataset.lid), 'down');
     return;
   }
   const card=e.target.closest('.card[data-sid]');

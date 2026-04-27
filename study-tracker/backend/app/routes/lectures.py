@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.schemas import LectureOut, LectureCompleteRequest, LectureEditRequest
+from app.models.schemas import LectureOut, LectureCompleteRequest, LectureEditRequest, LectureReorderRequest
 from app.services import lecture_service
 
 router = APIRouter(prefix="/lectures", tags=["Lectures"])
@@ -25,6 +25,10 @@ def update_lecture(lecture_id: int, payload: LectureEditRequest, db: Session = D
 @router.delete("/{lecture_id}")
 def delete_lecture(lecture_id: int, db: Session = Depends(get_db)):
     return lecture_service.delete_lecture(db, lecture_id)
+
+@router.put("/subject/{subject_id}/reorder", response_model=list[LectureOut])
+def reorder_lectures(subject_id: int, payload: LectureReorderRequest, db: Session = Depends(get_db)):
+    return lecture_service.reorder_lectures(db, subject_id, payload.lecture_ids)
 
 @router.delete("/subject/{subject_id}")
 def delete_all_lectures(subject_id: int, db: Session = Depends(get_db)):

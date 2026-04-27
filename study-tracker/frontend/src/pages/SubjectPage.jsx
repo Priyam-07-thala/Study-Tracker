@@ -21,7 +21,7 @@ export default function SubjectPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [activeTab, setActiveTab] = useState('lectures')
 
-  const { lectures, loading: lecturesLoading, error: lecturesError, refetch, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction } = useLectures(subjectId)
+  const { lectures, loading: lecturesLoading, error: lecturesError, refetch, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction, reorderLecturesAction } = useLectures(subjectId)
   const { progress, loading: progressLoading, refetch: refetchProgress } = useProgress(subjectId)
 
   useEffect(() => {
@@ -49,6 +49,28 @@ export default function SubjectPage() {
       try { await removeLectureAction(lectureId); refetchProgress() }
       catch (err) { alert('Failed to delete lecture: ' + err.message) }
     }
+  }
+
+  const handleMoveUp = async (lectureId) => {
+    const index = lectures.findIndex(l => l.id === lectureId)
+    if (index <= 0) return
+    const newLectures = [...lectures]
+    const temp = newLectures[index]
+    newLectures[index] = newLectures[index - 1]
+    newLectures[index - 1] = temp
+    try { await reorderLecturesAction(newLectures.map(l => l.id)) }
+    catch (err) { alert('Failed to reorder: ' + err.message) }
+  }
+
+  const handleMoveDown = async (lectureId) => {
+    const index = lectures.findIndex(l => l.id === lectureId)
+    if (index < 0 || index >= lectures.length - 1) return
+    const newLectures = [...lectures]
+    const temp = newLectures[index]
+    newLectures[index] = newLectures[index + 1]
+    newLectures[index + 1] = temp
+    try { await reorderLecturesAction(newLectures.map(l => l.id)) }
+    catch (err) { alert('Failed to reorder: ' + err.message) }
   }
 
   const handleClearLectures = async () => {
@@ -140,7 +162,7 @@ export default function SubjectPage() {
       </div>
 
       {activeTab === 'lectures' && (
-        <LectureList lectures={lectures} loading={lecturesLoading} error={lecturesError} onToggle={handleToggle} onEdit={handleEditLecture} onDelete={handleDeleteLecture} pendingIds={pendingIds} />
+        <LectureList lectures={lectures} loading={lecturesLoading} error={lecturesError} onToggle={handleToggle} onEdit={handleEditLecture} onDelete={handleDeleteLecture} onMoveUp={handleMoveUp} onMoveDown={handleMoveDown} pendingIds={pendingIds} />
       )}
       {activeTab === 'plan' && (
         <StudyPlan subjectId={subjectId} lectures={lectures} />

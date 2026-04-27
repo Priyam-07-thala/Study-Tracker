@@ -115,3 +115,26 @@ def delete_all_lectures(db: Session, subject_id: int):
     db.commit()
     
     return {"message": "All lectures cleared"}
+
+def reorder_lectures(db: Session, subject_id: int, lecture_ids: list[int]) -> list[LectureOut]:
+    subject = db.get(Subject, subject_id)
+    if not subject:
+        raise HTTPException(status_code=404, detail=f"Subject {subject_id} not found")
+        
+    lectures = db.scalars(select(Lecture).where(Lecture.subject_id == subject_id)).all()
+    lecture_map = {l.id: l for l in lectures}
+    
+    # Verify all provided IDs belong to the subject
+    for lid in lecture_ids:
+        if lid not in lecture_map:
+            raise HTTPException(status_code=400, detail=f"Lecture {lid} does not belong to subject {subject_id}")
+            
+    # Update orders
+    for order, lid in enumerate(lecture_ids):
+        lecture_map[lid].lecture_order = order
+        
+    db.commit()
+    
+    # Return sorted updated lectures
+    ordered_lectures = sorted(lectures, key=lambda l: l.lecture_order)
+    return [LectureOut.from_orm_with_url(lec) for lec in ordered_lectures]

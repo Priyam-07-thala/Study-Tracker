@@ -58,6 +58,9 @@ class LectureEditRequest(BaseModel):
 class LectureCompleteRequest(BaseModel):
     completed: bool = True
 
+class LectureReorderRequest(BaseModel):
+    lecture_ids: list[int]
+
 
 class PlaylistImportRequest(BaseModel):
     subject_id: int

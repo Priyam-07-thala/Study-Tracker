@@ -1,7 +1,7 @@
 import React from 'react'
 import Spinner from './Spinner'
 
-function LectureRow({ lecture, onToggle, onEdit, onDelete, isPending }) {
+function LectureRow({ lecture, onToggle, onEdit, onDelete, onMoveUp, onMoveDown, isPending }) {
   return (
     <div className="lecture-row" style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', background: lecture.completed ? 'rgba(61,220,132,0.04)' : 'transparent', borderBottom: '1px solid var(--border)', transition: 'background 0.2s', position: 'relative' }}>
       <div style={{ flexShrink: 0 }}>
@@ -17,6 +17,8 @@ function LectureRow({ lecture, onToggle, onEdit, onDelete, isPending }) {
       </div>
       
       <div style={{ display: 'flex', gap: '6px', opacity: 0.7 }}>
+        <button onClick={() => onMoveUp(lecture.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', fontSize: '14px' }} title="Move Up">↑</button>
+        <button onClick={() => onMoveDown(lecture.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', fontSize: '14px' }} title="Move Down">↓</button>
         <button onClick={() => onEdit(lecture)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }} title="Edit Lecture">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
@@ -33,13 +35,13 @@ function LectureRow({ lecture, onToggle, onEdit, onDelete, isPending }) {
   )
 }
 
-export default function LectureList({ lectures, loading, error, onToggle, onEdit, onDelete, pendingIds }) {
+export default function LectureList({ lectures, loading, error, onToggle, onEdit, onDelete, onMoveUp, onMoveDown, pendingIds }) {
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><Spinner size={32} /></div>
   if (error) return <div style={{ padding: '24px', color: 'var(--red)', fontSize: '14px' }}>Error: {error}</div>
   if (!lectures.length) return <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>No lectures yet. Import a YouTube playlist to get started.</div>
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      {lectures.map(lec => <LectureRow key={lec.id} lecture={lec} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete} isPending={pendingIds.has(lec.id)} />)}
+      {lectures.map(lec => <LectureRow key={lec.id} lecture={lec} onToggle={onToggle} onEdit={onEdit} onDelete={onDelete} onMoveUp={onMoveUp} onMoveDown={onMoveDown} isPending={pendingIds.has(lec.id)} />)}
     </div>
   )
 }

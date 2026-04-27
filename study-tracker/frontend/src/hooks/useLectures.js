@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getLectures, markLectureComplete, updateLecture, deleteLecture, deleteSubjectLectures } from '../api/lectures'
+import { getLectures, markLectureComplete, updateLecture, deleteLecture, deleteSubjectLectures, reorderLectures } from '../api/lectures'
 
 export function useLectures(subjectId) {
   const [lectures, setLectures] = useState([])
@@ -47,5 +47,12 @@ export function useLectures(subjectId) {
     setLectures([])
   }, [subjectId])
 
-  return { lectures, loading, error, refetch: fetchLectures, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction }
+  const reorderLecturesAction = useCallback(async (lectureIds) => {
+    if (!subjectId) return
+    const updated = await reorderLectures(subjectId, lectureIds)
+    setLectures(updated)
+    return updated
+  }, [subjectId])
+
+  return { lectures, loading, error, refetch: fetchLectures, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction, reorderLecturesAction }
 }

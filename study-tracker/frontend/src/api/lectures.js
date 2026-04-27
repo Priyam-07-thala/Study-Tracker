@@ -5,3 +5,4 @@ export const batchMarkComplete = (lectureIds, completed) => api.put('/lectures/b
 export const updateLecture = (lectureId, data) => api.put(`/lectures/${lectureId}`, data).then(r => r.data)
 export const deleteLecture = (lectureId) => api.delete(`/lectures/${lectureId}`).then(r => r.data)
 export const deleteSubjectLectures = (subjectId) => api.delete(`/lectures/subject/${subjectId}`).then(r => r.data)
+export const reorderLectures = (subjectId, lectureIds) => api.put(`/lectures/subject/${subjectId}/reorder`, { lecture_ids: lectureIds }).then(r => r.data)
