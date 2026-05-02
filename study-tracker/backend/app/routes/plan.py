@@ -8,7 +8,7 @@ router = APIRouter(prefix="/plan", tags=["Plan"])
 
 @router.post("/generate/{subject_id}", response_model=StudyPlanOut)
 def generate_plan(subject_id: int, payload: PlanGenerateRequest, db: Session = Depends(get_db)):
-    return plan_service.generate_study_plan(db, subject_id, payload.hours_per_day)
+    return plan_service.generate_study_plan(db, subject_id, hours_per_day=payload.hours_per_day, target_days=payload.target_days)
 
 @router.get("/{subject_id}", response_model=StudyPlanOut)
 def get_plan(subject_id: int, db: Session = Depends(get_db)):

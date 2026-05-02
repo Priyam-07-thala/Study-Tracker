@@ -6,7 +6,7 @@ from app.models.models import Lecture, Subject, StudyPlan, StudyPlanDay
 from app.models.schemas import PlanStatusOut
 
 
-def generate_study_plan(db: Session, subject_id: int, hours_per_day: float) -> StudyPlan:
+def generate_study_plan(db: Session, subject_id: int, hours_per_day: float = None, target_days: int = None) -> StudyPlan:
     subject = db.get(Subject, subject_id)
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
@@ -21,7 +21,36 @@ def generate_study_plan(db: Session, subject_id: int, hours_per_day: float) -> S
     if not lectures:
         raise HTTPException(status_code=400, detail="No lectures found for this subject")
 
-    max_seconds_per_day = int(hours_per_day * 3600)
+    if target_days:
+        # Binary search for the optimal maximum seconds per day
+        # to ensure the plan fits exactly into target_days (or minimum possible days)
+        low = max((l.duration or 0 for l in lectures), default=0)
+        high = sum(l.duration or 0 for l in lectures)
+        best_limit = high
+
+        while low <= high:
+            mid = (low + high) // 2
+            days = 1
+            current = 0
+            for l in lectures:
+                d = l.duration or 0
+                if current + d > mid and current > 0:
+                    days += 1
+                    current = d
+                else:
+                    current += d
+            
+            if days <= target_days:
+                best_limit = mid
+                high = mid - 1
+            else:
+                low = mid + 1
+        
+        max_seconds_per_day = best_limit
+        hours_per_day = round(max_seconds_per_day / 3600.0, 2) if max_seconds_per_day > 0 else 0.5
+    else:
+        hours_per_day = hours_per_day or 2.0
+        max_seconds_per_day = int(hours_per_day * 3600)
     
     # Check if a plan already exists
     existing_plan = db.scalar(select(StudyPlan).where(StudyPlan.subject_id == subject_id))

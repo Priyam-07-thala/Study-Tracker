@@ -1,9 +1,9 @@
 import { client } from './client'
 
-export const generatePlan = async (subjectId, hoursPerDay) => {
+export const generatePlan = async (subjectId, payload) => {
   const data = await client(`/plan/generate/${subjectId}`, {
     method: 'POST',
-    body: JSON.stringify({ hours_per_day: hoursPerDay }),
+    body: JSON.stringify(payload),
   })
   return data
 }

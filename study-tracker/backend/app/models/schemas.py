@@ -93,7 +93,8 @@ class ProgressResponse(BaseModel):
 
 
 class PlanGenerateRequest(BaseModel):
-    hours_per_day: float
+    hours_per_day: float | None = None
+    target_days: int | None = None
 
 
 class StudyPlanDayOut(BaseModel):

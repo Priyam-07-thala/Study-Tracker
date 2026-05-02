@@ -46,14 +46,11 @@ export default function StudyPlan({ subjectId, lectures }) {
   const handleGenerate = async () => {
     try {
       setGenerating(true)
-      const totalDurationSecs = lectures.reduce((acc, l) => acc + (l.duration || 0), 0)
-      let finalHours = hoursInput
-      if (calcMode === 'days') {
-        const days = daysInput || 1
-        finalHours = (totalDurationSecs / 3600) / days
-        if (finalHours <= 0) finalHours = 0.5
-      }
-      await generatePlan(subjectId, finalHours)
+      const payload = calcMode === 'days' 
+        ? { target_days: daysInput || 1 }
+        : { hours_per_day: hoursInput || 2 }
+      
+      await generatePlan(subjectId, payload)
       await fetchPlan()
     } catch (err) {
       alert('Failed to generate plan: ' + err.message)
