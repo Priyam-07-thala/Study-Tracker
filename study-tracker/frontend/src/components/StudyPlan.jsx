@@ -212,15 +212,21 @@ export default function StudyPlan({ subjectId, lectures }) {
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600 }}>Full Plan Breakdown</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <select 
-              value={calcMode} 
-              onChange={e => setCalcMode(e.target.value)}
-              style={{ padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontSize: '13px' }}
-            >
-              <option value="hours">Target Hours/Day</option>
-              <option value="days">Target Days</option>
-            </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'var(--bg)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <button 
+                onClick={() => setCalcMode('hours')}
+                style={{ padding: '4px 8px', border: 'none', background: calcMode === 'hours' ? 'var(--bg-2)' : 'transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: calcMode === 'hours' ? 600 : 400, color: 'var(--text)' }}
+              >
+                Hours/Day
+              </button>
+              <button 
+                onClick={() => setCalcMode('days')}
+                style={{ padding: '4px 8px', border: 'none', background: calcMode === 'days' ? 'var(--bg-2)' : 'transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: calcMode === 'days' ? 600 : 400, color: 'var(--text)' }}
+              >
+                Target Days
+              </button>
+            </div>
 
             {calcMode === 'hours' ? (
               <input
