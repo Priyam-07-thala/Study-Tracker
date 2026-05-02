@@ -15,6 +15,8 @@ export default function StudyPlan({ subjectId, lectures }) {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hoursInput, setHoursInput] = useState(2)
+  const [calcMode, setCalcMode] = useState('hours')
+  const [daysInput, setDaysInput] = useState(7)
   const [generating, setGenerating] = useState(false)
 
   const fetchPlan = async () => {
@@ -44,7 +46,14 @@ export default function StudyPlan({ subjectId, lectures }) {
   const handleGenerate = async () => {
     try {
       setGenerating(true)
-      await generatePlan(subjectId, hoursInput)
+      const totalDurationSecs = lectures.reduce((acc, l) => acc + (l.duration || 0), 0)
+      let finalHours = hoursInput
+      if (calcMode === 'days') {
+        const days = daysInput || 1
+        finalHours = (totalDurationSecs / 3600) / days
+        if (finalHours <= 0) finalHours = 0.5
+      }
+      await generatePlan(subjectId, finalHours)
       await fetchPlan()
     } catch (err) {
       alert('Failed to generate plan: ' + err.message)
@@ -76,23 +85,59 @@ export default function StudyPlan({ subjectId, lectures }) {
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px' }}>
           Generate a smart study plan based on video durations to stay on track.
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-          <label style={{ fontSize: '14px' }}>Hours per day:</label>
-          <input
-            type="number"
-            value={hoursInput}
-            onChange={e => setHoursInput(parseFloat(e.target.value))}
-            step="0.5"
-            min="0.5"
-            style={{ padding: '8px', width: '80px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)' }}
-          />
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            style={{ background: 'var(--accent)', color: '#fff', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 500 }}
-          >
-            {generating ? 'Generating...' : 'Generate Plan'}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '8px', background: 'var(--bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <button 
+              onClick={() => setCalcMode('hours')}
+              style={{ padding: '6px 12px', border: 'none', background: calcMode === 'hours' ? 'var(--bg-2)' : 'transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: calcMode === 'hours' ? 600 : 400, color: 'var(--text)' }}
+            >
+              Target Hours/Day
+            </button>
+            <button 
+              onClick={() => setCalcMode('days')}
+              style={{ padding: '6px 12px', border: 'none', background: calcMode === 'days' ? 'var(--bg-2)' : 'transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: calcMode === 'days' ? 600 : 400, color: 'var(--text)' }}
+            >
+              Target Days
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+            {calcMode === 'hours' ? (
+              <>
+                <label style={{ fontSize: '14px' }}>Hours per day:</label>
+                <input
+                  type="number"
+                  value={hoursInput}
+                  onChange={e => setHoursInput(parseFloat(e.target.value))}
+                  step="0.5"
+                  min="0.5"
+                  style={{ padding: '8px', width: '80px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)' }}
+                />
+              </>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '14px' }}>Total days:</label>
+                <input
+                  type="number"
+                  value={daysInput}
+                  onChange={e => setDaysInput(parseInt(e.target.value) || 1)}
+                  step="1"
+                  min="1"
+                  style={{ padding: '8px', width: '80px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)' }}
+                />
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                  (~{((lectures.reduce((a, l) => a + (l.duration || 0), 0) / 3600) / (daysInput || 1)).toFixed(1)} h/day)
+                </span>
+              </div>
+            )}
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              style={{ background: 'var(--accent)', color: '#fff', padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+            >
+              {generating ? 'Generating...' : 'Generate Plan'}
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -168,15 +213,40 @@ export default function StudyPlan({ subjectId, lectures }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 600 }}>Full Plan Breakdown</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Hours/day:</label>
-            <input
-              type="number"
-              value={hoursInput}
-              onChange={e => setHoursInput(parseFloat(e.target.value))}
-              step="0.5"
-              min="0.5"
-              style={{ padding: '4px 8px', width: '60px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontSize: '13px' }}
-            />
+            <select 
+              value={calcMode} 
+              onChange={e => setCalcMode(e.target.value)}
+              style={{ padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontSize: '13px' }}
+            >
+              <option value="hours">Target Hours/Day</option>
+              <option value="days">Target Days</option>
+            </select>
+
+            {calcMode === 'hours' ? (
+              <input
+                type="number"
+                value={hoursInput}
+                onChange={e => setHoursInput(parseFloat(e.target.value))}
+                step="0.5"
+                min="0.5"
+                style={{ padding: '4px 8px', width: '60px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontSize: '13px' }}
+              />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="number"
+                  value={daysInput}
+                  onChange={e => setDaysInput(parseInt(e.target.value) || 1)}
+                  step="1"
+                  min="1"
+                  style={{ padding: '4px 8px', width: '60px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text)', fontSize: '13px' }}
+                />
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  (~{((lectures.reduce((a, l) => a + (l.duration || 0), 0) / 3600) / (daysInput || 1)).toFixed(1)} h/d)
+                </span>
+              </div>
+            )}
+
             <button onClick={handleGenerate} disabled={generating} style={{ fontSize: '13px', background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer' }}>
               {generating ? 'Regenerating...' : 'Regenerate Plan'}
             </button>
