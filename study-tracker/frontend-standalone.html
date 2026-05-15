@@ -125,18 +125,58 @@ const S = {
   subjects:[], lectures:[], progress:null, plan:null, planStatus:null, activeTab:'lectures',
   loadingSubjects:true, loadingLectures:false, loadingPlan:false,
   subjectError:null, lectureError:null, pending:new Set(),
-  hoursInput: 2, generatingPlan: false
+  hoursInput: 2, generatingPlan: false,
+  goals: [], loadingGoals: true, goalError: null
 };
 function set(patch){Object.assign(S,patch);render();}
 async function req(method,path,body){
   const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
   if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||('HTTP '+r.status));}
+  if(r.status===204)return null;
   return r.json();
 }
 async function loadSubjects(){
   set({loadingSubjects:true,subjectError:null});
   try{const subjects=await req('GET','/subjects');set({subjects,loadingSubjects:false});}
   catch(e){set({loadingSubjects:false,subjectError:e.message});}
+}
+async function loadGoals(){
+  set({loadingGoals:true,goalError:null});
+  try{const goals=await req('GET','/daily_goals');set({goals,loadingGoals:false});}
+  catch(e){set({loadingGoals:false,goalError:e.message});}
+}
+async function doAddGoal(){
+  const inp=document.getElementById('inp-new-goal');
+  if(!inp)return;
+  const title=inp.value.trim();
+  if(!title)return;
+  inp.disabled=true;
+  try{
+    const goal=await req('POST','/daily_goals',{title});
+    set({goals:[goal,...S.goals]});
+  }catch(e){alert(e.message);}
+  finally{if(inp){inp.disabled=false;inp.value='';inp.focus();}}
+}
+async function toggleGoal(id,completed){
+  try{
+    const updated=await req('PUT','/daily_goals/'+id,{completed:!completed});
+    set({goals:S.goals.map(g=>g.id===id?updated:g)});
+  }catch(e){alert(e.message);}
+}
+async function deleteGoal(id){
+  if(!confirm('Delete goal?'))return;
+  try{
+    await req('DELETE','/daily_goals/'+id);
+    set({goals:S.goals.filter(g=>g.id!==id)});
+  }catch(e){alert(e.message);}
+}
+async function editGoal(id,oldTitle){
+  const newTitle=prompt('Edit goal:',oldTitle);
+  if(!newTitle||newTitle.trim()===oldTitle)return;
+  try{
+    const updated=await req('PUT','/daily_goals/'+id,{title:newTitle.trim()});
+    set({goals:S.goals.map(g=>g.id===id?updated:g)});
+  }catch(e){alert(e.message);}
 }
 async function loadLectures(id){
   set({loadingLectures:true,lectureError:null,lectures:[]});
@@ -448,6 +488,50 @@ function render(){
   document.getElementById('app').innerHTML=S.page==='dashboard'?renderDashboard():renderSubjectPage();
   if(S.page==='subject'&&S.activeTab==='progress')setTimeout(drawChart,60);
 }
+function renderGoals() {
+  const { goals, loadingGoals, goalError } = S;
+  if (loadingGoals) return `<div style="display:flex;justify-content:center;padding:20px">${mkSpinner(24)}</div>`;
+  if (goalError) return `<div class="err-box">${goalError}</div>`;
+  
+  const completedCount = goals.filter(g => g.completed).length;
+  const progressPercent = goals.length > 0 ? (completedCount / goals.length) * 100 : 0;
+  
+  const pbarHtml = goals.length > 0 ? `<div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:20px;overflow:hidden">
+    <div style="height:100%;background:var(--green);width:${progressPercent}%"></div>
+  </div>` : '';
+  
+  const addForm = `<div style="display:flex;gap:10px;margin-bottom:20px">
+    <input id="inp-new-goal" class="inp" placeholder="Add a new daily goal..." onkeypress="if(event.key==='Enter')doAddGoal()"/>
+    <button class="btn" onclick="doAddGoal()">Add Goal</button>
+  </div>`;
+  
+  let listHtml = '';
+  if (goals.length === 0) {
+    listHtml = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--r)">No goals set for today. Add one above!</div>`;
+  } else {
+    listHtml = `<div style="display:flex;flex-direction:column;gap:8px">${goals.map(g => {
+      return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);${g.completed ? 'opacity:0.7' : ''}">
+        <div class="chk ${g.completed ? 'on' : ''}" style="${g.completed ? 'background:var(--green);border-color:var(--green)' : ''}" onclick="toggleGoal(${g.id}, ${g.completed})">
+          ${g.completed ? `<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}
+        </div>
+        <div style="flex:1;font-size:13px;text-decoration:${g.completed ? 'line-through' : 'none'};color:${g.completed ? 'var(--muted)' : 'var(--text)'}">${esc(g.title)}</div>
+        <button class="btn-ghost" style="padding:2px 5px;border:none" onclick="editGoal(${g.id}, '${esc(g.title).replace(/'/g, "\\'")}')" title="Edit">✎</button>
+        <button class="btn-ghost" style="padding:2px 5px;border:none;color:var(--red)" onclick="deleteGoal(${g.id})" title="Delete">✖</button>
+      </div>`;
+    }).join('')}</div>`;
+  }
+  
+  return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:22px;margin-bottom:32px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px"><span style="font-size:18px">🎯</span> Daily Goals</h2>
+      ${goals.length > 0 ? `<span style="font-size:11px;color:var(--muted);font-family:var(--mono)">${completedCount} / ${goals.length} COMPLETED</span>` : ''}
+    </div>
+    ${pbarHtml}
+    ${addForm}
+    ${listHtml}
+  </div>`;
+}
+
 function renderDashboard(){
   const{subjects,loadingSubjects,subjectError}=S;
   const total=subjects.reduce((a,s)=>a+(s.total_lectures||0),0);
@@ -482,9 +566,10 @@ function renderDashboard(){
     <div class="stat"><div class="stat-lbl">TOTAL LECTURES</div><div class="stat-val">${total}</div></div>
     <div class="stat"><div class="stat-lbl">COMPLETED</div><div class="stat-val">${done}</div></div>
   </div>`:'';
+  const goalsSection = renderGoals();
   return `<div class="page"><div class="page-hdr"><div><h1>Dashboard</h1><div class="subtitle">Track your learning progress across all subjects</div></div>
     <button class="btn" onclick="openCreateModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New Subject</button>
-  </div>${stats}${body}</div>`;
+  </div>${goalsSection}${stats}${body}</div>`;
 }
 function renderSubjectPage(){
   const{subject,subjectColor,lectures,loadingLectures,lectureError,progress,activeTab}=S;
@@ -664,6 +749,7 @@ document.getElementById('app').addEventListener('click',function(e){
 });
 render();
 loadSubjects();
+loadGoals();
 </script>
 </body>
 </html>

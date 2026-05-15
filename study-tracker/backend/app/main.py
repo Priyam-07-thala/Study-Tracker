@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routes import subjects, lectures, youtube, progress, plan
+from app.routes import subjects, lectures, youtube, progress, plan, daily_goals
 import app.models.models  # noqa: F401
 
 Base.metadata.create_all(bind=engine)
@@ -27,6 +27,7 @@ app.include_router(lectures.router)
 app.include_router(youtube.router)
 app.include_router(progress.router)
 app.include_router(plan.router)
+app.include_router(daily_goals.router)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

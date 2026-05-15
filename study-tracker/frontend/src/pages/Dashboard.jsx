@@ -3,6 +3,7 @@ import SubjectCard from '../components/SubjectCard'
 import CreateSubjectModal from '../components/CreateSubjectModal'
 import EditSubjectModal from '../components/EditSubjectModal'
 import Spinner from '../components/Spinner'
+import DailyGoals from '../components/DailyGoals'
 import { useSubjects } from '../hooks/useSubjects'
 
 export default function Dashboard() {
@@ -34,6 +35,8 @@ export default function Dashboard() {
           New Subject
         </button>
       </div>
+
+      <DailyGoals />
 
       {!loading && subjects.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '40px' }}>

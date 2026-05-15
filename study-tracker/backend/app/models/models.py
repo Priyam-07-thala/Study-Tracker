@@ -84,3 +84,12 @@ class StudyPlanDay(Base):
     __table_args__ = (
         UniqueConstraint("plan_id", "day_number", name="uq_plan_day"),
     )
+
+
+class DailyGoal(Base):
+    __tablename__ = "daily_goals"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, default=1)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

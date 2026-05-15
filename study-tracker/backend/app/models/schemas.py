@@ -125,3 +125,19 @@ class PlanStatusOut(BaseModel):
     actual_duration: int
     avg_time_per_day_minutes: float
     estimated_completion_date: date | None
+
+
+class DailyGoalCreate(BaseModel):
+    title: str
+
+class DailyGoalEditRequest(BaseModel):
+    title: str | None = None
+    completed: bool | None = None
+
+class DailyGoalOut(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    completed: bool
+    created_at: datetime
+    model_config = {"from_attributes": True}
