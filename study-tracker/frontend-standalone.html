@@ -236,6 +236,22 @@ async function doDeleteSubject(id) {
     } catch(e) { alert(e.message); }
   }
 }
+async function doPauseSubject(id) {
+  try {
+    const updated = await req('PUT', '/subjects/' + id + '/pause');
+    S.subjects = S.subjects.map(s => s.id === id ? updated : s);
+    if (S.subject && S.subject.id === id) S.subject = updated;
+    render();
+  } catch(e) { alert(e.message); }
+}
+async function doResumeSubject(id) {
+  try {
+    const updated = await req('PUT', '/subjects/' + id + '/resume');
+    S.subjects = S.subjects.map(s => s.id === id ? updated : s);
+    if (S.subject && S.subject.id === id) S.subject = updated;
+    render();
+  } catch(e) { alert(e.message); }
+}
 async function doEditLecture(id, oldTitle) {
   const newTitle = prompt("Edit lecture title:", oldTitle);
   if (newTitle && newTitle.trim() !== oldTitle) {
@@ -446,10 +462,13 @@ function renderDashboard(){
     return `<div class="card" data-sid="${s.id}"
       onmouseenter="this.style.borderColor='${color}60';this.style.boxShadow='0 6px 28px ${color}12'"
       onmouseleave="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
-      <div class="card-strip" style="background:${color}"></div>
+      <div class="card-strip" style="background:${s.is_paused ? 'var(--muted)' : color}"></div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div class="card-name">${esc(s.name)}</div>
+        <div class="card-name">${esc(s.name)} ${s.is_paused ? '<span style="font-size:10px;padding:2px 6px;background:var(--bg3);color:var(--muted);border-radius:10px;text-transform:uppercase;font-weight:700">Paused</span>' : ''}</div>
         <div style="display:flex;gap:4px;margin-top:6px">
+          ${s.is_paused 
+            ? `<button class="btn-ghost" style="padding:2px 5px;border:none;color:var(--green)" data-action="resume-subject" data-sid="${s.id}" title="Resume Subject">▶</button>`
+            : `<button class="btn-ghost" style="padding:2px 5px;border:none" data-action="pause-subject" data-sid="${s.id}" title="Pause Subject">⏸</button>`}
           <button class="btn-ghost" style="padding:2px 5px;border:none" data-action="edit-subject" data-sid="${s.id}" data-sname="${escapedName}" title="Edit Subject">✎</button>
           <button class="btn-ghost" style="padding:2px 5px;border:none" data-action="delete-subject" data-sid="${s.id}" title="Delete Subject">✖</button>
         </div>
@@ -519,11 +538,20 @@ function renderSubjectPage(){
     }else{
       const plan = S.plan;
       const status = S.planStatus;
-      const daysPassed = Math.max(1, Math.floor((new Date() - new Date(plan.start_date)) / (1000 * 60 * 60 * 24)) + 1);
+      const effectiveDate = S.subject?.is_paused && S.subject?.paused_at ? new Date(S.subject.paused_at) : new Date();
+      const daysPassed = Math.max(1, Math.floor((effectiveDate - new Date(plan.start_date)) / (1000 * 60 * 60 * 24)) + 1);
       const todaysPlan = plan.days.find(d => d.day_number === daysPassed);
       
       let statusBanner='';
-      if(status){
+      if(S.subject?.is_paused){
+        statusBanner=`<div style="padding:16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);display:flex;align-items:center;gap:12px;margin-bottom:24px">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--muted)"></div>
+          <div style="flex:1">
+            <h3 style="font-size:15px;font-weight:600;margin-bottom:2px">Subject Paused</h3>
+            <p style="font-size:13px;color:var(--muted)">The study plan is paused. Resuming will automatically shift your target dates.</p>
+          </div>
+        </div>`;
+      } else if(status){
         const isAhead = status.status === 'ahead';
         const isBehind = status.status === 'behind';
         const bg = isAhead ? 'rgba(46, 204, 113, 0.1)' : isBehind ? 'rgba(231, 76, 60, 0.1)' : 'var(--bg2)';
@@ -588,7 +616,10 @@ function renderSubjectPage(){
   const escapedSubjectName = subject.name.replace(/'/g, "&apos;").replace(/"/g, "&quot;");
   return `<div class="page" style="max-width:880px"><div class="subject-hdr"><div style="flex:1">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-      <h1 style="margin-bottom:0">${esc(subject.name)}</h1>
+      <h1 style="margin-bottom:0">${esc(subject.name)} ${subject.is_paused ? '<span style="font-size:12px;padding:4px 8px;background:var(--bg3);color:var(--muted);border-radius:12px;text-transform:uppercase;font-weight:700">Paused</span>' : ''}</h1>
+      ${subject.is_paused 
+        ? `<button class="btn-ghost" style="padding:4px 8px;border:none;color:var(--green)" data-action="resume-subject" data-sid="${subject.id}" title="Resume Subject">▶</button>`
+        : `<button class="btn-ghost" style="padding:4px 8px;border:none" data-action="pause-subject" data-sid="${subject.id}" title="Pause Subject">⏸</button>`}
       <button class="btn-ghost" style="padding:4px 8px;border:none" data-action="edit-subject" data-sid="${subject.id}" data-sname="${escapedSubjectName}" title="Edit Subject">✎</button>
       <button class="btn-ghost" style="padding:4px 8px;border:none" data-action="delete-subject" data-sid="${subject.id}" title="Delete Subject">✖</button>
     </div>
@@ -616,6 +647,8 @@ document.getElementById('app').addEventListener('click',function(e){
     const action = actionBtn.dataset.action;
     if (action === 'edit-subject') doEditSubject(parseInt(actionBtn.dataset.sid), actionBtn.dataset.sname);
     else if (action === 'delete-subject') doDeleteSubject(parseInt(actionBtn.dataset.sid));
+    else if (action === 'pause-subject') doPauseSubject(parseInt(actionBtn.dataset.sid));
+    else if (action === 'resume-subject') doResumeSubject(parseInt(actionBtn.dataset.sid));
     else if (action === 'edit-lecture') doEditLecture(parseInt(actionBtn.dataset.lid), actionBtn.dataset.ltitle);
     else if (action === 'delete-lecture') doDeleteLecture(parseInt(actionBtn.dataset.lid));
     else if (action === 'clear-lectures') doClearLectures(parseInt(actionBtn.dataset.sid));
