@@ -10,7 +10,7 @@ function formatDuration(seconds) {
   return `${m}m`
 }
 
-export default function StudyPlan({ subjectId, lectures }) {
+export default function StudyPlan({ subjectId, lectures, subject }) {
   const [plan, setPlan] = useState(null)
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -141,14 +141,28 @@ export default function StudyPlan({ subjectId, lectures }) {
   }
 
   // Find today's tasks
-  const daysPassed = Math.max(1, Math.floor((new Date() - new Date(plan.start_date)) / (1000 * 60 * 60 * 24)) + 1)
+  const effectiveDate = subject?.is_paused && subject?.paused_at 
+    ? new Date(subject.paused_at) 
+    : new Date()
+  const daysPassed = Math.max(1, Math.floor((effectiveDate - new Date(plan.start_date)) / (1000 * 60 * 60 * 24)) + 1)
   const todaysPlan = plan.days.find(d => d.day_number === daysPassed)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
+      {/* Paused Banner */}
+      {subject?.is_paused && (
+        <div style={{ padding: '16px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-muted)' }} />
+          <div style={{ flex: 1 }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '2px' }}>Subject Paused</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>The study plan is paused. Resuming will automatically shift your target dates.</p>
+          </div>
+        </div>
+      )}
+
       {/* Status Banner */}
-      {status && (
+      {status && !subject?.is_paused && (
         <div style={{ 
           display: 'flex', gap: '16px', padding: '16px', borderRadius: 'var(--radius)', 
           background: status.status === 'ahead' ? 'rgba(46, 204, 113, 0.1)' : status.status === 'behind' ? 'rgba(231, 76, 60, 0.1)' : 'var(--bg-2)',

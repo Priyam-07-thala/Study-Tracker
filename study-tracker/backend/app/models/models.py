@@ -23,6 +23,8 @@ class Subject(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    paused_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     user: Mapped["User"] = relationship("User", back_populates="subjects")
     lectures: Mapped[list["Lecture"]] = relationship("Lecture", back_populates="subject", cascade="all, delete-orphan", order_by="Lecture.lecture_order")
     progress_snapshots: Mapped[list["ProgressSnapshot"]] = relationship("ProgressSnapshot", back_populates="subject", cascade="all, delete-orphan")

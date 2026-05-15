@@ -21,3 +21,11 @@ def update_subject(subject_id: int, payload: SubjectEditRequest, db: Session = D
 @router.delete("/{subject_id}")
 def delete_subject(subject_id: int, db: Session = Depends(get_db)):
     return subject_service.delete_subject(db, subject_id)
+
+@router.put("/{subject_id}/pause", response_model=SubjectOut)
+def pause_subject(subject_id: int, db: Session = Depends(get_db)):
+    return subject_service.pause_subject(db, subject_id)
+
+@router.put("/{subject_id}/resume", response_model=SubjectOut)
+def resume_subject(subject_id: int, db: Session = Depends(get_db)):
+    return subject_service.resume_subject(db, subject_id)

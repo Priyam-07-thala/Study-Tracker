@@ -6,7 +6,7 @@ import Spinner from '../components/Spinner'
 import { useSubjects } from '../hooks/useSubjects'
 
 export default function Dashboard() {
-  const { subjects, loading, error, addSubject, editSubjectAction, removeSubjectAction } = useSubjects()
+  const { subjects, loading, error, addSubject, editSubjectAction, removeSubjectAction, pauseSubjectAction, resumeSubjectAction } = useSubjects()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState(null)
 
@@ -63,7 +63,17 @@ export default function Dashboard() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-          {subjects.map((s, i) => <SubjectCard key={s.id} subject={s} index={i} onEditRequest={() => setEditingSubject(s)} onDeleteRequest={() => handleDelete(s.id)} />)}
+          {subjects.map((s, i) => (
+            <SubjectCard 
+              key={s.id} 
+              subject={s} 
+              index={i} 
+              onEditRequest={() => setEditingSubject(s)} 
+              onDeleteRequest={() => handleDelete(s.id)} 
+              onPauseRequest={() => pauseSubjectAction(s.id)}
+              onResumeRequest={() => resumeSubjectAction(s.id)}
+            />
+          ))}
         </div>
       )}
 

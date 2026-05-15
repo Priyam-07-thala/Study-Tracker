@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 from fastapi import HTTPException
-from app.models.models import Subject, Lecture, User
+from datetime import datetime, timedelta
+from app.models.models import Subject, Lecture, User, StudyPlan
 from app.models.schemas import SubjectCreate, SubjectOut, SubjectEditRequest
 
 
@@ -62,3 +63,31 @@ def delete_subject(db: Session, subject_id: int):
     db.delete(subject)
     db.commit()
     return {"message": "Subject deleted successfully"}
+
+
+def pause_subject(db: Session, subject_id: int) -> SubjectOut:
+    subject = get_subject_or_404(db, subject_id)
+    if not subject.is_paused:
+        subject.is_paused = True
+        subject.paused_at = datetime.utcnow()
+        db.commit()
+        db.refresh(subject)
+    return _enrich_subject(db, subject)
+
+
+def resume_subject(db: Session, subject_id: int) -> SubjectOut:
+    subject = get_subject_or_404(db, subject_id)
+    if subject.is_paused and subject.paused_at:
+        now = datetime.utcnow()
+        time_paused = now - subject.paused_at
+        
+        # Shift the StudyPlan start date forward by the number of days paused
+        plan = db.scalar(select(StudyPlan).where(StudyPlan.subject_id == subject_id))
+        if plan:
+            plan.start_date = plan.start_date + timedelta(days=time_paused.days)
+            
+        subject.is_paused = False
+        subject.paused_at = None
+        db.commit()
+        db.refresh(subject)
+    return _enrich_subject(db, subject)

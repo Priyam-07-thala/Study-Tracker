@@ -9,7 +9,7 @@ import StudyPlan from '../components/StudyPlan'
 import EditSubjectModal from '../components/EditSubjectModal'
 import { useLectures } from '../hooks/useLectures'
 import { useProgress } from '../hooks/useProgress'
-import { getSubjects, updateSubject, deleteSubject } from '../api/subjects'
+import { getSubjects, updateSubject, deleteSubject, pauseSubject, resumeSubject } from '../api/subjects'
 
 export default function SubjectPage() {
   const { id } = useParams()
@@ -94,6 +94,19 @@ export default function SubjectPage() {
     }
   }
 
+  const handlePauseToggle = async () => {
+    if (!subject) return
+    try {
+      if (subject.is_paused) {
+        const updated = await resumeSubject(subjectId)
+        setSubject(updated)
+      } else {
+        const updated = await pauseSubject(subjectId)
+        setSubject(updated)
+      }
+    } catch (err) { alert('Failed to toggle pause: ' + err.message) }
+  }
+
   const completedCount = lectures.filter(l => l.completed).length
   const totalCount = lectures.length
   const pct = totalCount > 0 ? completedCount / totalCount * 100 : 0
@@ -114,7 +127,19 @@ export default function SubjectPage() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-              <h1 style={{ fontSize: '26px', fontWeight: 700 }}>{subject?.name || `Subject #${subjectId}`}</h1>
+              <h1 style={{ fontSize: '26px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {subject?.name || `Subject #${subjectId}`}
+                {subject?.is_paused && <span style={{ fontSize: '12px', padding: '4px 8px', background: 'var(--bg-3)', color: 'var(--text-muted)', borderRadius: '12px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Paused</span>}
+              </h1>
+              {subject?.is_paused ? (
+                <button onClick={handlePauseToggle} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--green)' }} title="Resume Subject">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </button>
+              ) : (
+                <button onClick={handlePauseToggle} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Pause Subject">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                </button>
+              )}
               <button onClick={() => setShowEdit(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }} title="Edit Subject">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
@@ -165,7 +190,7 @@ export default function SubjectPage() {
         <LectureList lectures={lectures} loading={lecturesLoading} error={lecturesError} onToggle={handleToggle} onEdit={handleEditLecture} onDelete={handleDeleteLecture} onMoveUp={handleMoveUp} onMoveDown={handleMoveDown} pendingIds={pendingIds} />
       )}
       {activeTab === 'plan' && (
-        <StudyPlan subjectId={subjectId} lectures={lectures} />
+        <StudyPlan subjectId={subjectId} lectures={lectures} subject={subject} />
       )}
       {activeTab === 'progress' && (
         progressLoading

@@ -4,7 +4,7 @@ import ProgressBar from './ProgressBar'
 
 const COLORS = ['#7c6af7','#3ddc84','#f5c542','#ff6b6b','#60b4ff','#ff9f40']
 
-export default function SubjectCard({ subject, index, onEditRequest, onDeleteRequest }) {
+export default function SubjectCard({ subject, index, onEditRequest, onDeleteRequest, onPauseRequest, onResumeRequest }) {
   const navigate = useNavigate()
   const accent = COLORS[index % COLORS.length]
   return (
@@ -14,13 +14,25 @@ export default function SubjectCard({ subject, index, onEditRequest, onDeleteReq
       onMouseEnter={e => { e.currentTarget.style.borderColor = accent + '80'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 32px ${accent}15` }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
     >
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: accent, borderRadius: '14px 14px 0 0' }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: subject.is_paused ? 'var(--text-muted)' : accent, borderRadius: '14px 14px 0 0' }} />
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px' }}>{subject.name}</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {subject.name}
+            {subject.is_paused && <span style={{ fontSize: '10px', padding: '2px 6px', background: 'var(--bg-3)', color: 'var(--text-muted)', borderRadius: '10px', textTransform: 'uppercase', fontWeight: 700 }}>Paused</span>}
+          </h3>
           {subject.description && <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{subject.description}</p>}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {subject.is_paused ? (
+            <button onClick={(e) => { e.stopPropagation(); onResumeRequest && onResumeRequest(); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--green)' }} title="Resume Subject">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); onPauseRequest && onPauseRequest(); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)' }} title="Pause Subject">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </button>
+          )}
           <button onClick={(e) => { e.stopPropagation(); onEditRequest && onEditRequest(); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)' }} title="Edit Subject">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
           </button>

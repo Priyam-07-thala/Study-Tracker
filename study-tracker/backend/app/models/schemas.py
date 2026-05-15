@@ -31,6 +31,8 @@ class SubjectOut(BaseModel):
     total_lectures: int = 0
     completed_lectures: int = 0
     completion_percentage: float = 0.0
+    is_paused: bool = False
+    paused_at: datetime | None = None
     model_config = {"from_attributes": True}
 
 
