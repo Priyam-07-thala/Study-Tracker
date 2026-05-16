@@ -141,3 +141,29 @@ class DailyGoalOut(BaseModel):
     completed: bool
     created_at: datetime
     model_config = {"from_attributes": True}
+
+
+class AINoteOut(BaseModel):
+    id: int
+    subject_id: int
+    title: str
+    content: str
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+
+class AIChatMessageOut(BaseModel):
+    id: int
+    subject_id: int
+    role: str
+    content: str
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+
+class AIChatRequest(BaseModel):
+    message: str
+
+
+class AINoteGenerateRequest(BaseModel):
+    prompt_type: str  # e.g., "full", "short", "qna"

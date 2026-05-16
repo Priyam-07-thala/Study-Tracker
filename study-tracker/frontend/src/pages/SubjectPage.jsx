@@ -11,6 +11,8 @@ import { useLectures } from '../hooks/useLectures'
 import { useProgress } from '../hooks/useProgress'
 import { getSubjects, updateSubject, deleteSubject, pauseSubject, resumeSubject } from '../api/subjects'
 
+import AIAssistant from '../components/AIAssistant'
+
 export default function SubjectPage() {
   const { id } = useParams()
   const subjectId = parseInt(id)
@@ -184,6 +186,7 @@ export default function SubjectPage() {
         <button onClick={() => setActiveTab('lectures')} style={tabStyle('lectures')}>Lectures {totalCount > 0 && `(${totalCount})`}</button>
         <button onClick={() => setActiveTab('plan')} style={tabStyle('plan')}>Study Plan</button>
         <button onClick={() => setActiveTab('progress')} style={tabStyle('progress')}>Progress Chart</button>
+        <button onClick={() => setActiveTab('ai')} style={tabStyle('ai')}>AI Assistant</button>
       </div>
 
       {activeTab === 'lectures' && (
@@ -196,6 +199,9 @@ export default function SubjectPage() {
         progressLoading
           ? <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><Spinner size={32} /></div>
           : <ProgressChart progress={progress} />
+      )}
+      {activeTab === 'ai' && (
+        <AIAssistant subjectId={subjectId} />
       )}
 
       {showImport && (

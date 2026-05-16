@@ -93,3 +93,21 @@ class DailyGoal(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AINote(Base):
+    __tablename__ = "ai_notes"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject_id: Mapped[int] = mapped_column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    content: Mapped[str] = mapped_column(String(10000), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AIChatMessage(Base):
+    __tablename__ = "ai_chat_messages"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    subject_id: Mapped[int] = mapped_column(Integer, ForeignKey("subjects.id", ondelete="CASCADE"), nullable=False)
+    role: Mapped[str] = mapped_column(String(50), nullable=False)  # "user" or "model"
+    content: Mapped[str] = mapped_column(String(5000), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

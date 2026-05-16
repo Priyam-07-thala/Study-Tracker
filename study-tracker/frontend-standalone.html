@@ -126,7 +126,8 @@ const S = {
   loadingSubjects:true, loadingLectures:false, loadingPlan:false,
   subjectError:null, lectureError:null, pending:new Set(),
   hoursInput: 2, generatingPlan: false,
-  goals: [], loadingGoals: true, goalError: null
+  goals: [], loadingGoals: true, goalError: null,
+  notes: [], chatHistory: [], loadingAI: false, aiActionInProgress: false, activeAITab: 'notes'
 };
 function set(patch){Object.assign(S,patch);render();}
 async function req(method,path,body){
@@ -228,7 +229,7 @@ function formatDuration(sec){
 }
 function goHome(){
   document.getElementById('nav-back').style.display='none';
-  set({page:'dashboard',subject:null,lectures:[],progress:null,plan:null,planStatus:null,activeTab:'lectures'});
+  set({page:'dashboard',subject:null,lectures:[],progress:null,plan:null,planStatus:null,activeTab:'lectures',notes:[],chatHistory:[]});
   loadSubjects();
 }
 function goSubject(subjectId){
@@ -236,10 +237,11 @@ function goSubject(subjectId){
   if(!subject)return;
   const color=COLORS[S.subjects.indexOf(subject)%COLORS.length];
   document.getElementById('nav-back').style.display='block';
-  set({page:'subject',subject,subjectColor:color,lectures:[],progress:null,plan:null,planStatus:null,activeTab:'lectures'});
+  set({page:'subject',subject,subjectColor:color,lectures:[],progress:null,plan:null,planStatus:null,activeTab:'lectures',notes:[],chatHistory:[],activeAITab:'notes'});
   loadLectures(subject.id);
   loadProgress(subject.id);
   loadPlan(subject.id);
+  loadAI(subject.id);
 }
 async function toggleLecture(id,completed){
   const pending=new Set(S.pending);pending.add(id);
@@ -253,6 +255,50 @@ async function toggleLecture(id,completed){
     const p2=new Set(S.pending);p2.delete(id);
     set({lectures:S.lectures.map(l=>l.id===id?{...l,completed:!completed}:l),pending:p2});
     alert('Failed: '+e.message);
+  }
+}
+
+async function loadAI(id) {
+  set({loadingAI: true});
+  try {
+    const notes = await req('GET', '/api/ai/subjects/' + id + '/notes');
+    const chatHistory = await req('GET', '/api/ai/subjects/' + id + '/chat');
+    set({notes, chatHistory, loadingAI: false});
+  } catch (e) {
+    set({loadingAI: false});
+  }
+}
+
+async function doGenerateNote(promptType) {
+  if(!S.subject || S.aiActionInProgress) return;
+  set({aiActionInProgress: true});
+  try {
+    const note = await req('POST', '/api/ai/subjects/' + S.subject.id + '/notes', { prompt_type: promptType });
+    set({notes: [note, ...S.notes]});
+  } catch (e) { alert('Failed to generate note: ' + e.message); }
+  finally { set({aiActionInProgress: false}); }
+}
+
+async function doSendChatMessage() {
+  if(!S.subject || S.aiActionInProgress) return;
+  const inp = document.getElementById('ai-chat-input');
+  if(!inp) return;
+  const msg = inp.value.trim();
+  if(!msg) return;
+  
+  const newHistory = [...S.chatHistory, {role: 'user', content: msg}];
+  set({chatHistory: newHistory, aiActionInProgress: true});
+  setTimeout(()=>{const c=document.getElementById('ai-chat-container');if(c)c.scrollTop=c.scrollHeight;},50);
+  
+  try {
+    const response = await req('POST', '/api/ai/subjects/' + S.subject.id + '/chat', { message: msg });
+    set({chatHistory: [...newHistory, response]});
+  } catch (e) { 
+    alert('Failed to send message: ' + e.message); 
+    set({chatHistory: S.chatHistory});
+  } finally { 
+    set({aiActionInProgress: false});
+    setTimeout(()=>{const c=document.getElementById('ai-chat-container');if(c)c.scrollTop=c.scrollHeight;},50);
   }
 }
 async function doEditSubject(id, oldName) {
@@ -347,6 +393,7 @@ async function doClearLectures(subjectId) {
 function switchTab(tab){
   set({activeTab:tab});
   if(tab==='progress'&&S.subject)setTimeout(drawChart,60);
+  if(tab==='ai'&&S.activeAITab==='chat')setTimeout(()=>{const c=document.getElementById('ai-chat-container');if(c)c.scrollTop=c.scrollHeight;},60);
 }
 function openCreateModal(){
   const el=document.createElement('div');
@@ -580,6 +627,7 @@ function renderSubjectPage(){
     <div class="tab ${activeTab==='lectures'?'on':''}" onclick="switchTab('lectures')">Lectures${lectures.length?' ('+lectures.length+')':''}</div>
     <div class="tab ${activeTab==='plan'?'on':''}" onclick="switchTab('plan')">Study Plan</div>
     <div class="tab ${activeTab==='progress'?'on':''}" onclick="switchTab('progress')">Progress Chart</div>
+    <div class="tab ${activeTab==='ai'?'on':''}" onclick="switchTab('ai')">AI Assistant</div>
   </div>`;
   let panel='';
   if(activeTab==='lectures'){
@@ -696,6 +744,45 @@ function renderSubjectPage(){
         </div>`;
       
       panel=`<div>${statusBanner}${todaysTasksHtml}${fullPlanHtml}</div>`;
+    }
+  }else if(activeTab==='ai'){
+    if(S.loadingAI){panel=`<div style="display:flex;justify-content:center;padding:48px">${mkSpinner(32)}</div>`;}
+    else{
+      const aiTabs=`<div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn-ghost" style="background:${S.activeAITab==='notes'?'var(--bg3)':'transparent'};border-color:${S.activeAITab==='notes'?'var(--border2)':'transparent'};color:${S.activeAITab==='notes'?'var(--text)':'var(--muted)'}" onclick="set({activeAITab:'notes'})">Notes</button>
+        <button class="btn-ghost" style="background:${S.activeAITab==='chat'?'var(--bg3)':'transparent'};border-color:${S.activeAITab==='chat'?'var(--border2)':'transparent'};color:${S.activeAITab==='chat'?'var(--text)':'var(--muted)'}" onclick="set({activeAITab:'chat'}, ()=>{setTimeout(()=>{const c=document.getElementById('ai-chat-container');if(c)c.scrollTop=c.scrollHeight;},50)})">AI Chat</button>
+      </div>`;
+      let aiContent='';
+      if(S.activeAITab==='notes'){
+        const btns=`<div style="display:flex;gap:8px;margin-bottom:20px">
+          <button class="btn-ghost" onclick="doGenerateNote('full')" ${S.aiActionInProgress?'disabled':''}>${S.aiActionInProgress?'Generating...':'Full Notes'}</button>
+          <button class="btn-ghost" onclick="doGenerateNote('short')" ${S.aiActionInProgress?'disabled':''}>${S.aiActionInProgress?'Generating...':'Short Notes'}</button>
+          <button class="btn-ghost" onclick="doGenerateNote('qna')" ${S.aiActionInProgress?'disabled':''}>${S.aiActionInProgress?'Generating...':'Q&A'}</button>
+        </div>`;
+        const notesHtml=S.notes.length===0?`<div class="no-data">No notes generated yet.</div>`:S.notes.map(n=>`
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:16px">
+            <h3 style="margin-bottom:12px;font-size:16px">${esc(n.title)}</h3>
+            <div style="font-size:13px;color:var(--dim);white-space:pre-wrap;line-height:1.6">${esc(n.content)}</div>
+          </div>
+        `).join('');
+        aiContent=`<div>${btns}${notesHtml}</div>`;
+      }else{
+        const msgs=S.chatHistory.length===0?`<div class="no-data" style="margin-top:20px;border:none">Start a conversation about the playlist...</div>`:S.chatHistory.map(m=>`
+          <div style="display:flex;justify-content:${m.role==='user'?'flex-end':'flex-start'};margin-bottom:12px">
+            <div style="max-width:80%;background:${m.role==='user'?'var(--accent)':'var(--bg3)'};color:${m.role==='user'?'#fff':'var(--text)'};padding:12px 16px;border-radius:12px;border-bottom-${m.role==='user'?'right':'left'}-radius:0;font-size:13px;white-space:pre-wrap;line-height:1.5">
+              ${esc(m.content)}
+            </div>
+          </div>
+        `).join('');
+        aiContent=`<div style="display:flex;flex-direction:column;height:500px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)">
+          <div id="ai-chat-container" style="flex:1;overflow-y:auto;padding:20px">${msgs}${S.aiActionInProgress&&S.chatHistory[S.chatHistory.length-1]?.role==='user'?`<div style="display:flex;justify-content:flex-start;margin-bottom:12px"><div style="background:var(--bg3);padding:12px 16px;border-radius:12px;border-bottom-left-radius:0">${mkSpinner(16)}</div></div>`:''}</div>
+          <div style="display:flex;padding:15px;border-top:1px solid var(--border);background:var(--bg)">
+            <input id="ai-chat-input" class="inp" placeholder="Ask a question..." style="flex:1" onkeypress="if(event.key==='Enter')doSendChatMessage()" ${S.aiActionInProgress?'disabled':''}/>
+            <button class="btn" style="margin-left:8px" onclick="doSendChatMessage()" ${S.aiActionInProgress?'disabled':''}>Send</button>
+          </div>
+        </div>`;
+      }
+      panel=`<div>${aiTabs}${aiContent}</div>`;
     }
   }
   const escapedSubjectName = subject.name.replace(/'/g, "&apos;").replace(/"/g, "&quot;");

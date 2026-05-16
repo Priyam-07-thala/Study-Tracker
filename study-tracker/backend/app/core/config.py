@@ -5,6 +5,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
     YOUTUBE_API_KEY: str
+    GEMINI_API_KEY: str | None = None
     CORS_ORIGINS: str = "http://localhost:3000"
 
     @property
