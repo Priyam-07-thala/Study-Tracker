@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS subjects (
     user_id     INT NOT NULL,
     name        VARCHAR(255) NOT NULL,
     description VARCHAR(1000),
+    is_paused   TINYINT(1) NOT NULL DEFAULT 0,
+    paused_at   DATETIME,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_subjects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -66,4 +68,31 @@ CREATE TABLE IF NOT EXISTS study_plan_days (
     total_duration  INT NOT NULL DEFAULT 0,
     CONSTRAINT fk_study_plan_days_plan FOREIGN KEY (plan_id) REFERENCES study_plans(id) ON DELETE CASCADE,
     UNIQUE KEY uq_plan_day (plan_id, day_number)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS daily_goals (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL DEFAULT 1,
+    title       VARCHAR(500) NOT NULL,
+    completed   TINYINT(1) NOT NULL DEFAULT 0,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_daily_goals_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ai_notes (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id  INT NOT NULL,
+    title       VARCHAR(500) NOT NULL,
+    content     TEXT NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ai_notes_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS ai_chat_messages (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id  INT NOT NULL,
+    role        VARCHAR(50) NOT NULL,
+    content     TEXT NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ai_chat_messages_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

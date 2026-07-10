@@ -1,26 +1,18 @@
-import { client } from './client'
+import api from './client'
 
 export const generatePlan = async (subjectId, payload) => {
-  const data = await client(`/plan/generate/${subjectId}`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-  return data
+  return api.post(`/plan/generate/${subjectId}`, payload).then(r => r.data)
 }
 
 export const getPlan = async (subjectId) => {
-  const data = await client(`/plan/${subjectId}`)
-  return data
+  return api.get(`/plan/${subjectId}`).then(r => r.data)
 }
 
 export const getPlanStatus = async (subjectId) => {
-  const data = await client(`/plan/status/${subjectId}`)
-  return data
+  return api.get(`/plan/status/${subjectId}`).then(r => r.data)
 }
 
 export const adjustPlan = async (subjectId) => {
-  const data = await client(`/plan/adjust/${subjectId}`, {
-    method: 'POST',
-  })
-  return data
+  return api.post(`/plan/adjust/${subjectId}`).then(r => r.data)
 }
+
