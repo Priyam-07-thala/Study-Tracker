@@ -22,6 +22,7 @@ export default function SubjectPage() {
   const [showImport, setShowImport] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [activeTab, setActiveTab] = useState('lectures')
+  const [activeLecture, setActiveLecture] = useState(null)
 
   const { lectures, loading: lecturesLoading, error: lecturesError, refetch, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction, reorderLecturesAction } = useLectures(subjectId)
   const { progress, loading: progressLoading, refetch: refetchProgress } = useProgress(subjectId)
@@ -46,9 +47,31 @@ export default function SubjectPage() {
     }
   }
 
+  const handlePrevLecture = () => {
+    if (!activeLecture) return
+    const index = lectures.findIndex(l => l.id === activeLecture.id)
+    if (index > 0) {
+      setActiveLecture(lectures[index - 1])
+    }
+  }
+
+  const handleNextLecture = () => {
+    if (!activeLecture) return
+    const index = lectures.findIndex(l => l.id === activeLecture.id)
+    if (index >= 0 && index < lectures.length - 1) {
+      setActiveLecture(lectures[index + 1])
+    }
+  }
+
   const handleDeleteLecture = async (lectureId) => {
     if (window.confirm("Are you sure you want to delete this lecture?")) {
-      try { await removeLectureAction(lectureId); refetchProgress() }
+      try { 
+        await removeLectureAction(lectureId)
+        refetchProgress()
+        if (activeLecture?.id === lectureId) {
+          setActiveLecture(null)
+        }
+      }
       catch (err) { alert('Failed to delete lecture: ' + err.message) }
     }
   }
@@ -182,6 +205,47 @@ export default function SubjectPage() {
         </div>
       </div>
 
+      {/* Video Player */}
+      {activeLecture && (
+        <div style={{ marginBottom: '32px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '24px', boxShadow: 'var(--shadow)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Playing: #{activeLecture.lecture_order + 1}. {activeLecture.title}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <button 
+                onClick={handlePrevLecture} 
+                disabled={lectures.findIndex(l => l.id === activeLecture.id) <= 0}
+                style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', opacity: lectures.findIndex(l => l.id === activeLecture.id) <= 0 ? 0.4 : 1 }}
+              >
+                ◀ Prev
+              </button>
+              <button 
+                onClick={handleNextLecture} 
+                disabled={lectures.findIndex(l => l.id === activeLecture.id) >= lectures.length - 1}
+                style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text)', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', opacity: lectures.findIndex(l => l.id === activeLecture.id) >= lectures.length - 1 ? 0.4 : 1 }}
+              >
+                Next ▶
+              </button>
+              <button 
+                onClick={() => setActiveLecture(null)} 
+                style={{ background: 'transparent', border: '1px solid var(--red)', borderRadius: '6px', color: 'var(--red)', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}
+              >
+                Close ✖
+              </button>
+            </div>
+          </div>
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${activeLecture.video_id}?autoplay=1&rel=0`}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
         <button onClick={() => setActiveTab('lectures')} style={tabStyle('lectures')}>Lectures {totalCount > 0 && `(${totalCount})`}</button>
         <button onClick={() => setActiveTab('plan')} style={tabStyle('plan')}>Study Plan</button>
@@ -190,7 +254,7 @@ export default function SubjectPage() {
       </div>
 
       {activeTab === 'lectures' && (
-        <LectureList lectures={lectures} loading={lecturesLoading} error={lecturesError} onToggle={handleToggle} onEdit={handleEditLecture} onDelete={handleDeleteLecture} onMoveUp={handleMoveUp} onMoveDown={handleMoveDown} pendingIds={pendingIds} />
+        <LectureList lectures={lectures} loading={lecturesLoading} error={lecturesError} onToggle={handleToggle} onEdit={handleEditLecture} onDelete={handleDeleteLecture} onMoveUp={handleMoveUp} onMoveDown={handleMoveDown} pendingIds={pendingIds} onPlay={setActiveLecture} activeLectureId={activeLecture?.id} />
       )}
       {activeTab === 'plan' && (
         <StudyPlan subjectId={subjectId} lectures={lectures} subject={subject} />
