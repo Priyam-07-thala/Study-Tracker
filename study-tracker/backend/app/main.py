@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.routes import subjects, lectures, youtube, progress, plan, daily_goals, ai
+from app.routes import subjects, lectures, youtube, progress, plan, daily_goals, ai, auth
 import app.models.models  # noqa: F401
 
 Base.metadata.create_all(bind=engine)
@@ -22,6 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(subjects.router)
 app.include_router(lectures.router)
 app.include_router(youtube.router)

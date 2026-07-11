@@ -8,11 +8,12 @@ USE study_tracker;
 CREATE TABLE IF NOT EXISTS users (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     username    VARCHAR(100) NOT NULL,
+    password    VARCHAR(100) NOT NULL DEFAULT 'demo',
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_users_username (username)
 ) ENGINE=InnoDB;
 
-INSERT IGNORE INTO users (id, username) VALUES (1, 'demo');
+INSERT IGNORE INTO users (id, username, password) VALUES (1, 'demo', 'demo');
 
 CREATE TABLE IF NOT EXISTS subjects (
     id          INT AUTO_INCREMENT PRIMARY KEY,

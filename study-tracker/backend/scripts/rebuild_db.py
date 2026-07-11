@@ -17,6 +17,17 @@ def rebuild_db():
             else:
                 print(f"Error altering table: {e}")
                 
+        print("Checking if 'password' column exists in 'users' table...")
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN password VARCHAR(100) NOT NULL DEFAULT 'demo';"))
+            conn.commit()
+            print("Successfully added 'password' column to 'users'.")
+        except Exception as e:
+            if "Duplicate column name" in str(e):
+                print("'password' column already exists.")
+            else:
+                print(f"Error altering table: {e}")
+                
     print("Creating new tables if they don't exist...")
     Base.metadata.create_all(bind=engine)
     print("Database rebuild complete!")

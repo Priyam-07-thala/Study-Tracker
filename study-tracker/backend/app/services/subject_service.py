@@ -91,3 +91,19 @@ def resume_subject(db: Session, subject_id: int) -> SubjectOut:
         db.commit()
         db.refresh(subject)
     return _enrich_subject(db, subject)
+
+
+def verify_subject_owner(db: Session, subject_id: int, user_id: int) -> Subject:
+    subject = db.get(Subject, subject_id)
+    if not subject or subject.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Subject not found or access denied")
+    return subject
+
+
+def verify_lecture_owner(db: Session, lecture_id: int, user_id: int) -> Lecture:
+    lecture = db.get(Lecture, lecture_id)
+    if not lecture:
+        raise HTTPException(status_code=404, detail="Lecture not found")
+    verify_subject_owner(db, lecture.subject_id, user_id)
+    return lecture
+
