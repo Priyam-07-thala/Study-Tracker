@@ -142,18 +142,12 @@ export default function SubjectPage() {
   const totalCount = lectures.length
   const pct = totalCount > 0 ? completedCount / totalCount * 100 : 0
 
-  const tabStyle = (tab) => ({
-    padding: '8px 18px', fontSize: '13px', fontWeight: 500,
-    background: activeTab === tab ? 'var(--bg-3)' : 'transparent',
-    border: '1px solid', borderColor: activeTab === tab ? 'var(--border-hover)' : 'transparent',
-    borderRadius: 'var(--radius)', color: activeTab === tab ? 'var(--text)' : 'var(--text-muted)',
-    cursor: 'pointer', transition: 'all 0.15s',
-  })
+  const getTabClass = (tab) => `tab-button ${activeTab === tab ? 'active' : ''}`
 
   if (subjectLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '80px' }}><Spinner size={36} /></div>
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
       <div style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div style={{ flex: 1 }}>
@@ -265,11 +259,11 @@ export default function SubjectPage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-        <button onClick={() => setActiveTab('lectures')} style={tabStyle('lectures')}>Lectures {totalCount > 0 && `(${totalCount})`}</button>
-        <button onClick={() => setActiveTab('plan')} style={tabStyle('plan')}>Study Plan</button>
-        <button onClick={() => setActiveTab('progress')} style={tabStyle('progress')}>Progress Chart</button>
-        <button onClick={() => setActiveTab('ai')} style={tabStyle('ai')}>AI Assistant</button>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '28px', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '5px', borderRadius: '24px', width: 'fit-content' }}>
+        <button onClick={() => setActiveTab('lectures')} className={getTabClass('lectures')}>Lectures {totalCount > 0 && `(${totalCount})`}</button>
+        <button onClick={() => setActiveTab('plan')} className={getTabClass('plan')}>Study Plan</button>
+        <button onClick={() => setActiveTab('progress')} className={getTabClass('progress')}>Progress Chart</button>
+        <button onClick={() => setActiveTab('ai')} className={getTabClass('ai')}>AI Assistant</button>
       </div>
 
       {activeTab === 'lectures' && (

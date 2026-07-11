@@ -19,17 +19,17 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 24px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '40px' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '40px', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '6px' }}>Dashboard</h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Track your learning progress across all subjects</p>
+          <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.75px', marginBottom: '6px', background: 'linear-gradient(90deg, var(--text) 0%, var(--text-dim) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Dashboard</h1>
+          <p style={{ fontSize: '14px', color: 'var(--text-dim)' }}>Track your learning progress across all subjects</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', fontSize: '14px', fontWeight: 500 }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-hover)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--accent)'}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '11px 20px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', fontSize: '14px', fontWeight: 600, boxShadow: 'var(--shadow-accent)', transition: 'all 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-hover)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.transform = 'none' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
           New Subject
@@ -39,15 +39,16 @@ export default function Dashboard() {
       <DailyGoals />
 
       {!loading && subjects.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '40px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '40px' }}>
           {[
-            { label: 'TOTAL SUBJECTS', value: subjects.length },
-            { label: 'TOTAL LECTURES', value: subjects.reduce((a, s) => a + s.total_lectures, 0) },
-            { label: 'COMPLETED', value: subjects.reduce((a, s) => a + s.completed_lectures, 0) },
+            { label: 'TOTAL SUBJECTS', value: subjects.length, color: 'var(--accent)' },
+            { label: 'TOTAL LECTURES', value: subjects.reduce((a, s) => a + s.total_lectures, 0), color: 'var(--yellow)' },
+            { label: 'COMPLETED LECTURES', value: subjects.reduce((a, s) => a + s.completed_lectures, 0), color: 'var(--green)' },
           ].map(stat => (
-            <div key={stat.label} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px 24px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginBottom: '6px' }}>{stat.label}</div>
-              <div style={{ fontSize: '28px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{stat.value}</div>
+            <div key={stat.label} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '24px', position: 'relative', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: '4px', background: stat.color }} />
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--mono)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>{stat.label}</div>
+              <div style={{ fontSize: '32px', fontWeight: 800, fontFamily: 'var(--mono)', color: stat.color }}>{stat.value}</div>
             </div>
           ))}
         </div>
