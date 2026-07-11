@@ -21,37 +21,76 @@ def generate_study_plan(db: Session, subject_id: int, hours_per_day: float = Non
     if not lectures:
         raise HTTPException(status_code=400, detail="No lectures found for this subject")
 
+    # Determine day partitions
+    N = len(lectures)
+    
     if target_days:
-        # Binary search for the optimal maximum seconds per day
-        # to ensure the plan fits exactly into target_days (or minimum possible days)
-        low = max((l.duration or 0 for l in lectures), default=0)
-        high = sum(l.duration or 0 for l in lectures)
-        best_limit = high
-
-        while low <= high:
-            mid = (low + high) // 2
-            days = 1
-            current = 0
-            for l in lectures:
-                d = l.duration or 0
-                if current + d > mid and current > 0:
-                    days += 1
-                    current = d
-                else:
-                    current += d
-            
-            if days <= target_days:
-                best_limit = mid
-                high = mid - 1
-            else:
-                low = mid + 1
+        if target_days < 1:
+            target_days = 1
+        D = min(N, target_days)
         
-        max_seconds_per_day = best_limit
-        hours_per_day = round(max_seconds_per_day / 3600.0, 2) if max_seconds_per_day > 0 else 0.5
+        # Calculate daily target
+        durations = [l.duration or 0 for l in lectures]
+        total_duration = sum(durations)
+        
+        # Guard for zero duration lectures
+        effective_durations = durations if total_duration > 0 else [1] * N
+        effective_total = sum(effective_durations)
+        
+        # Calculate cumulative durations
+        cum = [0] * (N + 1)
+        for i in range(N):
+            cum[i + 1] = cum[i] + effective_durations[i]
+            
+        target_avg = effective_total / D
+        
+        # Find optimal partition points
+        partition_ends = []
+        idx = 0
+        for d in range(1, D):
+            target_cum = d * target_avg
+            best_end = idx + 1
+            min_diff = float('inf')
+            
+            for end in range(idx + 1, N - D + d + 1):
+                diff = abs(cum[end] - target_cum)
+                if diff < min_diff:
+                    min_diff = diff
+                    best_end = end
+            
+            partition_ends.append(best_end)
+            idx = best_end
+        partition_ends.append(N)
+        
+        # Now construct the day assignments
+        day_lectures = []
+        idx = 0
+        for end in partition_ends:
+            day_lectures.append(lectures[idx:end])
+            idx = end
+            
+        # Calculate hours_per_day
+        hours_per_day = round((total_duration / D) / 3600.0, 2) if total_duration > 0 else 0.5
     else:
+        # Standard greedy packing based on hours_per_day
         hours_per_day = hours_per_day or 2.0
         max_seconds_per_day = int(hours_per_day * 3600)
-    
+        
+        day_lectures = []
+        current_day = []
+        current_duration = 0
+        
+        for lecture in lectures:
+            duration = lecture.duration or 0
+            if current_duration + duration > max_seconds_per_day and current_day:
+                day_lectures.append(current_day)
+                current_day = []
+                current_duration = 0
+            current_day.append(lecture)
+            current_duration += duration
+        if current_day:
+            day_lectures.append(current_day)
+            
     # Check if a plan already exists
     existing_plan = db.scalar(select(StudyPlan).where(StudyPlan.subject_id == subject_id))
     if existing_plan:
@@ -66,41 +105,12 @@ def generate_study_plan(db: Session, subject_id: int, hours_per_day: float = Non
     db.add(plan)
     db.flush()
 
-    day_number = 1
-    current_day_duration = 0
-    current_day_lectures = []
-    
-    for lecture in lectures:
-        duration = lecture.duration or 0
-        
-        # If adding this lecture exceeds the daily limit, and the current day is not empty, move to next day
-        if current_day_duration + duration > max_seconds_per_day and current_day_lectures:
-            plan_day = StudyPlanDay(
-                plan_id=plan.id,
-                day_number=day_number,
-                lecture_ids=current_day_lectures,
-                total_duration=current_day_duration
-            )
-            db.add(plan_day)
-            
-            day_number += 1
-            current_day_duration = 0
-            current_day_lectures = []
-
-        # Add lecture to current day
-        current_day_lectures.append(lecture.id)
-        current_day_duration += duration
-        
-        # If the single lecture itself is larger than the limit, we'll let it be the only one in the day
-        # The next iteration will trigger the new day because current_day_duration > max_seconds_per_day
-    
-    # Add the last day if not empty
-    if current_day_lectures:
+    for day_idx, day_lecs in enumerate(day_lectures, start=1):
         plan_day = StudyPlanDay(
             plan_id=plan.id,
-            day_number=day_number,
-            lecture_ids=current_day_lectures,
-            total_duration=current_day_duration
+            day_number=day_idx,
+            lecture_ids=[l.id for l in day_lecs],
+            total_duration=sum(l.duration or 0 for l in day_lecs)
         )
         db.add(plan_day)
 
