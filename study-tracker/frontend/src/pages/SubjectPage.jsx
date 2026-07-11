@@ -23,6 +23,7 @@ export default function SubjectPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [activeTab, setActiveTab] = useState('lectures')
   const [activeLecture, setActiveLecture] = useState(null)
+  const [showAdTip, setShowAdTip] = useState(() => !localStorage.getItem('hideAdTip'))
 
   const { lectures, loading: lecturesLoading, error: lecturesError, refetch, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction, reorderLecturesAction } = useLectures(subjectId)
   const { progress, loading: progressLoading, refetch: refetchProgress } = useProgress(subjectId)
@@ -61,6 +62,11 @@ export default function SubjectPage() {
     if (index >= 0 && index < lectures.length - 1) {
       setActiveLecture(lectures[index + 1])
     }
+  }
+
+  const handleDismissAdTip = () => {
+    setShowAdTip(false)
+    localStorage.setItem('hideAdTip', 'true')
   }
 
   const handleDeleteLecture = async (lectureId) => {
@@ -235,6 +241,19 @@ export default function SubjectPage() {
               </button>
             </div>
           </div>
+
+          {showAdTip && (
+            <div style={{ marginBottom: '16px', padding: '12px 16px', background: 'var(--accent-dim)', border: '1px solid rgba(124,106,247,0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px' }}>💡</span>
+                <span>
+                  <strong>Tip for Ad-Free Study:</strong> To block all pre-roll ads on public channels, we recommend installing the <a href="https://ublockorigin.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}>uBlock Origin</a> extension or using Brave browser.
+                </span>
+              </div>
+              <button onClick={handleDismissAdTip} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', padding: '0 4px', display: 'flex', alignItems: 'center' }} title="Dismiss Tip">×</button>
+            </div>
+          )}
+
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: '12px', border: '1px solid var(--border)' }}>
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${activeLecture.video_id}?autoplay=1&rel=0`}
