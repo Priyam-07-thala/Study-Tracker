@@ -43,8 +43,11 @@ function LectureRow({ lecture, onToggle, onEdit, onDelete, onMoveUp, onMoveDown,
       </div>
 
       <span style={{ fontFamily: 'var(--mono)', fontSize: '11px', color: 'var(--text-muted)', minWidth: '28px', textAlign: 'right' }}>#{lecture.lecture_order + 1}</span>
-      <a href={lecture.youtube_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '4px' }} onMouseEnter={e => e.currentTarget.style.color = '#ff4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-2.75 12.17 12.17 0 01-.86-2.68A.18.18 0 0014.78 1H9.22a.18.18 0 00-.18.18 12.17 12.17 0 01-.86 2.68 4.83 4.83 0 01-3.77 2.75.18.18 0 00-.15.18v10.26a.18.18 0 00.15.18 4.83 4.83 0 013.77 2.75 12.17 12.17 0 01.86 2.68.18.18 0 00.18.14h5.56a.18.18 0 00.18-.18 12.17 12.17 0 01.86-2.68 4.83 4.83 0 013.77-2.75.18.18 0 00.15-.18V6.87a.18.18 0 00-.15-.18zM10 15.5l-4-3.5 4-3.5v7zm4 0V8.5l4 3.5-4 3.5z"/></svg>
+      <button onClick={(e) => { e.stopPropagation(); onPlay(lecture); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isActive ? 'var(--accent)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '4px' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'} onMouseLeave={e => e.currentTarget.style.color = isActive ? 'var(--accent)' : 'var(--text-muted)'} title="Play Embedded">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <a href={lecture.youtube_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: '4px' }} onMouseEnter={e => e.currentTarget.style.color = '#ff4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'} title="Open in YouTube">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
       </a>
     </div>
   )
