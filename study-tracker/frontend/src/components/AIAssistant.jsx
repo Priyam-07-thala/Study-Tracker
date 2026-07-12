@@ -75,43 +75,84 @@ export default function AIAssistant({ subjectId }) {
 
   const renderNotes = () => {
     if (loadingNotes) return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner size={28} /></div>;
+    
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        
+        {/* Action triggers */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           {[
-            { type: 'full', label: 'Full Notes' },
-            { type: 'short', label: 'Summary' },
-            { type: 'qna', label: 'Q&A Prep' }
+            { type: 'full', label: 'Full Notes 📝' },
+            { type: 'short', label: 'Summary 📋' },
+            { type: 'qna', label: 'Q&A Prep ❓' }
           ].map(btn => (
             <button 
               key={btn.type}
               onClick={() => handleGenerateNote(btn.type)} 
               disabled={isGeneratingNote} 
-              style={{
-                padding: '9px 16px', 
-                borderRadius: 'var(--radius)', 
-                background: 'var(--bg-2)', 
-                color: 'var(--text)', 
-                border: '1px solid var(--border)', 
-                cursor: isGeneratingNote ? 'not-allowed' : 'pointer', 
-                fontWeight: 600, 
-                fontSize: '13px',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={e => { if (!isGeneratingNote) e.currentTarget.style.borderColor = 'var(--accent)' }}
-              onMouseLeave={e => { if (!isGeneratingNote) e.currentTarget.style.borderColor = 'var(--border)' }}
+              className="sketch-btn sketch-btn-accent"
+              style={{ fontSize: '13px', padding: '6px 12px' }}
             >
               {isGeneratingNote ? 'Generating...' : `Generate ${btn.label}`}
             </button>
           ))}
         </div>
+
+        {/* Pinned Note Documents */}
         {notes.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center', padding: '40px 0' }}>No notes generated yet. Click one of the buttons above to build AI notes!</p>
+          <p 
+            style={{ 
+              color: 'var(--text-muted)', 
+              fontFamily: 'var(--hand)',
+              fontWeight: 'bold',
+              fontSize: '16px', 
+              textAlign: 'center', 
+              padding: '40px 0',
+              border: '2px dashed var(--border)',
+              borderRadius: '8px'
+            }}
+          >
+            No notes compiled yet. Click one of the buttons above to let Doodly scan your lectures! 💡
+          </p>
         ) : (
           notes.map(note => (
-            <div key={note.id} style={{ background: 'var(--bg-2)', padding: '24px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '14px', fontSize: '16px', fontWeight: 700 }}>{note.title}</h3>
-              <div style={{ fontSize: '14px', whiteSpace: 'pre-wrap', lineHeight: '1.6', color: 'var(--text-dim)' }}>
+            <div 
+              key={note.id} 
+              className="sketch-border taped taped-yellow"
+              style={{ 
+                background: '#fffdf0', /* Soft paper note card */
+                padding: '24px', 
+                boxShadow: '4px 4px 0px var(--border)',
+                transform: 'rotate(-0.5deg)',
+                backgroundImage: 'linear-gradient(rgba(44, 42, 41, 0.04) 1px, transparent 1px)',
+                backgroundSize: '100% 26px',
+                lineHeight: '26px'
+              }}
+            >
+              <h3 
+                style={{ 
+                  marginTop: 0, 
+                  marginBottom: '16px', 
+                  fontSize: '18px', 
+                  fontWeight: 800,
+                  fontFamily: 'var(--sans)',
+                  borderBottom: '2.5px solid var(--border)',
+                  paddingBottom: '8px',
+                  lineHeight: 1
+                }}
+              >
+                📝 {note.title}
+              </h3>
+              
+              <div 
+                style={{ 
+                  fontSize: '16px', 
+                  fontFamily: 'var(--hand)',
+                  fontWeight: 'bold',
+                  whiteSpace: 'pre-wrap', 
+                  color: 'var(--text)' 
+                }}
+              >
                 {note.content}
               </div>
             </div>
@@ -123,96 +164,198 @@ export default function AIAssistant({ subjectId }) {
 
   const renderChat = () => {
     if (loadingChat) return <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner size={28} /></div>;
+    
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '500px', background: 'var(--bg-2)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
+      <div 
+        className="sketch-border-sm"
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          height: '520px', 
+          background: '#faf8f4', /* Lighter notebook section background */
+          backgroundImage: 'radial-gradient(rgba(44, 42, 41, 0.03) 1px, transparent 1px)',
+          backgroundSize: '15px 15px',
+          overflow: 'hidden', 
+          boxShadow: '3px 3px 0px var(--border)' 
+        }}
+      >
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {chatHistory.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '10px' }}>
-              <span style={{ fontSize: '32px' }}>💬</span>
-              <p style={{ fontSize: '13.5px', textAlign: 'center' }}>Start a conversation about the playlist or ask study questions!</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', gap: '12px' }}>
+              <span style={{ fontSize: '36px' }}>💬</span>
+              <p style={{ fontSize: '15px', fontFamily: 'var(--hand)', fontWeight: 'bold', textAlign: 'center' }}>
+                Ask Doodly anything about the playlist, clear concepts, or generate study cards!
+              </p>
             </div>
           ) : (
-            chatHistory.map((msg, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '10px', alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-                {msg.role !== 'user' && (
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid rgba(124,106,247,0.2)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
-                    AI
+            chatHistory.map((msg, idx) => {
+              const isUser = msg.role === 'user'
+              return (
+                <div 
+                  key={idx} 
+                  style={{ 
+                    display: 'flex', 
+                    gap: '10px', 
+                    alignSelf: isUser ? 'flex-end' : 'flex-start', 
+                    maxWidth: '85%' 
+                  }}
+                >
+                  {!isUser && (
+                    <div 
+                      style={{ 
+                        width: '28px', 
+                        height: '28px', 
+                        borderRadius: '50%', 
+                        background: 'var(--hl-purple)', 
+                        border: '2px solid var(--border)', 
+                        color: 'var(--text)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        fontSize: '11px', 
+                        fontWeight: 'bold', 
+                        flexShrink: 0,
+                        boxShadow: '1px 1px 0px var(--border)'
+                      }}
+                    >
+                      🤖
+                    </div>
+                  )}
+                  
+                  <div 
+                    className="sketch-border-sm"
+                    style={{ 
+                      background: isUser ? 'var(--hl-blue)' : '#ffffff', 
+                      color: 'var(--text)', 
+                      padding: '10px 14px', 
+                      boxShadow: '1.5px 1.5px 0px var(--border)',
+                      whiteSpace: 'pre-wrap',
+                      fontSize: '15px',
+                      fontFamily: 'var(--hand)',
+                      fontWeight: 'bold',
+                      lineHeight: '1.4',
+                      transform: isUser ? 'rotate(-0.5deg)' : 'rotate(0.5deg)'
+                    }}
+                  >
+                    {msg.content}
                   </div>
-                )}
-                <div style={{ 
-                  background: msg.role === 'user' ? 'var(--accent)' : 'var(--bg-3)', 
-                  color: msg.role === 'user' ? '#fff' : 'var(--text)', 
-                  padding: '12px 16px', 
-                  borderRadius: '16px',
-                  borderBottomRightRadius: msg.role === 'user' ? '2px' : '16px',
-                  borderBottomLeftRadius: msg.role !== 'user' ? '2px' : '16px',
-                  border: msg.role === 'user' ? 'none' : '1px solid var(--border)',
-                  whiteSpace: 'pre-wrap',
-                  fontSize: '14px',
-                  lineHeight: '1.5'
-                }}>
-                  {msg.content}
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
+          
           {isSendingMessage && (
-            <div style={{ alignSelf: 'flex-start', display: 'flex', gap: '10px', maxWidth: '80%' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid rgba(124,106,247,0.2)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, flexShrink: 0 }}>
-                AI
+            <div style={{ alignSelf: 'flex-start', display: 'flex', gap: '10px', maxWidth: '85%' }}>
+              <div 
+                style={{ 
+                  width: '28px', 
+                  height: '28px', 
+                  borderRadius: '50%', 
+                  background: 'var(--hl-purple)', 
+                  border: '2px solid var(--border)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  flexShrink: 0 
+                }}
+              >
+                🤖
               </div>
-              <div style={{ background: 'var(--bg-3)', padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '2px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center' }}>
+              <div 
+                className="sketch-border-sm"
+                style={{ 
+                  background: '#ffffff', 
+                  padding: '10px 14px', 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  boxShadow: '1px 1px 0 var(--border)' 
+                }}
+              >
                 <Spinner size={14} />
               </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
-        <form onSubmit={handleSendMessage} style={{ display: 'flex', padding: '15px', borderTop: '1px solid var(--border)', background: 'var(--bg-3)' }}>
+        
+        {/* Send message form */}
+        <form 
+          onSubmit={handleSendMessage} 
+          style={{ 
+            display: 'flex', 
+            padding: '14px', 
+            borderTop: '2px solid var(--border)', 
+            background: 'var(--bg-card)',
+            alignItems: 'center'
+          }}
+        >
           <input
             type="text"
+            className="sketch-input"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            placeholder="Ask a question about this subject..."
-            style={{ flex: 1, padding: '11px 16px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: '14px', outline: 'none', transition: 'all 0.2s' }}
+            placeholder="Ask Doodly a study question..."
             disabled={isSendingMessage}
-            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+            style={{ flex: 1, padding: '6px 4px', lineHeight: 1 }}
           />
           <button 
             type="submit" 
             disabled={isSendingMessage || !messageInput.trim()} 
-            style={{ 
-              marginLeft: '10px', 
-              padding: '0 24px', 
-              background: 'var(--accent)', 
-              color: '#fff', 
-              border: 'none', 
-              borderRadius: 'var(--radius)', 
-              cursor: (isSendingMessage || !messageInput.trim()) ? 'not-allowed' : 'pointer', 
-              fontWeight: 600,
-              fontSize: '14px',
-              opacity: (isSendingMessage || !messageInput.trim()) ? 0.6 : 1,
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => { if (!isSendingMessage && messageInput.trim()) e.currentTarget.style.background = 'var(--accent-hover)' }}
-            onMouseLeave={e => { if (!isSendingMessage && messageInput.trim()) e.currentTarget.style.background = 'var(--accent)' }}
+            className="sketch-btn sketch-btn-accent"
+            style={{ marginLeft: '12px', padding: '6px 16px', height: '36px' }}
           >
-            Send
+            Send ➔
           </button>
         </form>
       </div>
     );
   };
 
-  const getTabClass = (tab) => `tab-button ${activeTab === tab ? 'active' : ''}`
-
   return (
     <div>
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '5px', borderRadius: '24px', width: 'fit-content' }}>
-        <button onClick={() => setActiveTab('notes')} className={getTabClass('notes')}>Generated Notes</button>
-        <button onClick={() => setActiveTab('chat')} className={getTabClass('chat')}>AI Chat</button>
+      {/* Mini folder sub-tabs */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          gap: '2px', 
+          marginBottom: '20px', 
+          background: 'transparent', 
+          borderBottom: '2.5px solid var(--border)', 
+          paddingBottom: '2px' 
+        }}
+      >
+        <button 
+          onClick={() => setActiveTab('notes')} 
+          className="tab-button"
+          style={{
+            border: '2px solid transparent',
+            borderRadius: '6px 6px 0 0',
+            ...(activeTab === 'notes' ? {
+              borderColor: 'var(--border) var(--border) transparent var(--border)',
+              background: '#ffffff',
+              bottom: '-4px'
+            } : {})
+          }}
+        >
+          📝 Study Notes
+        </button>
+        <button 
+          onClick={() => setActiveTab('chat')} 
+          className="tab-button"
+          style={{
+            border: '2px solid transparent',
+            borderRadius: '6px 6px 0 0',
+            ...(activeTab === 'chat' ? {
+              borderColor: 'var(--border) var(--border) transparent var(--border)',
+              background: '#ffffff',
+              bottom: '-4px'
+            } : {})
+          }}
+        >
+          💬 Chat with Doodly
+        </button>
       </div>
+      
       {activeTab === 'notes' ? renderNotes() : renderChat()}
     </div>
   );

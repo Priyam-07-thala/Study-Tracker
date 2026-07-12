@@ -61,117 +61,249 @@ export default function DailyGoals() {
   };
 
   if (loading) {
-    return <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}><Spinner size={24} /></div>;
+    return (
+      <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
+        <Spinner size={24} />
+      </div>
+    );
   }
 
   if (error) {
-    return <div style={{ padding: '16px', background: 'rgba(255,92,92,0.08)', border: '1px solid rgba(255,92,92,0.25)', borderRadius: 'var(--radius-lg)', color: 'var(--red)', fontSize: '13px' }}>{error}</div>;
+    return (
+      <div 
+        className="sticky-note taped" 
+        style={{ background: 'var(--hl-pink)', color: 'var(--red)', fontSize: '14px', fontWeight: 'bold' }}
+      >
+        ⚠️ {error}
+      </div>
+    );
   }
 
   const completedCount = goals.filter(g => g.completed).length;
   const progressPercent = goals.length > 0 ? (completedCount / goals.length) * 100 : 0;
 
   return (
-    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '24px', marginBottom: '40px', boxShadow: 'var(--shadow)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '22px' }}>🎯</span> Daily Goals
+    <div 
+      className="sketch-border"
+      style={{ 
+        background: '#fffde6', /* Legal pad yellow */
+        padding: '24px', 
+        marginBottom: '32px', 
+        boxShadow: '4px 4px 0px var(--border)',
+        position: 'relative',
+        backgroundImage: 'linear-gradient(rgba(44, 42, 41, 0.05) 1px, transparent 1px)',
+        backgroundSize: '100% 32px',
+        lineHeight: '32px'
+      }}
+    >
+      {/* Decorative vertical red line of legal pad */}
+      <div 
+        style={{ 
+          position: 'absolute', 
+          left: '48px', 
+          top: 0, 
+          bottom: 0, 
+          width: '2px', 
+          background: 'rgba(239, 68, 68, 0.35)', 
+          pointerEvents: 'none' 
+        }} 
+      />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', zIndex: 5, position: 'relative' }}>
+        <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', lineHeight: 1 }}>
+          🎯 Daily Study Goals
         </h2>
         {goals.length > 0 && (
-          <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--mono)', fontWeight: 700, letterSpacing: '0.05em' }}>
+          <span 
+            style={{ 
+              fontSize: '13px', 
+              color: 'var(--text-muted)', 
+              fontFamily: 'var(--hand)', 
+              fontWeight: 'bold', 
+              letterSpacing: '0.02em', 
+              background: 'var(--hl-yellow)', 
+              padding: '2px 8px', 
+              borderRadius: '4px',
+              border: '1.5px solid var(--border)'
+            }}
+          >
             {completedCount} / {goals.length} COMPLETED
           </span>
         )}
       </div>
 
+      {/* Highlighter-style progress bar */}
       {goals.length > 0 && (
-        <div style={{ height: '5px', background: 'var(--bg-3)', borderRadius: '3px', marginBottom: '24px', overflow: 'hidden' }}>
-          <div style={{ height: '100%', background: 'var(--green)', width: `${progressPercent}%`, transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }} />
+        <div 
+          style={{ 
+            height: '10px', 
+            background: 'rgba(0,0,0,0.06)', 
+            borderRadius: '10px 4px 8px 6px / 6px 4px 10px 8px', 
+            border: '2px solid var(--border)',
+            marginBottom: '20px', 
+            overflow: 'hidden',
+            position: 'relative',
+            zIndex: 5
+          }}
+        >
+          <div 
+            style={{ 
+              height: '100%', 
+              background: 'var(--hl-green)', 
+              width: `${progressPercent}%`, 
+              transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)' 
+            }} 
+          />
         </div>
       )}
 
-      <form onSubmit={handleAdd} style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
+      {/* Input Form styled as writing on pad */}
+      <form 
+        onSubmit={handleAdd} 
+        style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginBottom: '24px', 
+          position: 'relative', 
+          zIndex: 5,
+          paddingLeft: '32px' 
+        }}
+      >
         <input
           type="text"
+          className="sketch-input"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="Add a new daily goal..."
+          placeholder="Write down a micro-goal for today..."
           disabled={isSubmitting}
-          style={{ flex: 1, padding: '11px 16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--text)', fontSize: '14px', outline: 'none', transition: 'all 0.2s' }}
-          onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 2px var(--accent-dim)' }}
-          onBlur={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }}
+          style={{ flex: 1, padding: '4px 0', lineHeight: 1 }}
         />
         <button
           type="submit"
           disabled={!newTitle.trim() || isSubmitting}
-          style={{ padding: '0 24px', background: 'var(--accent)', border: 'none', borderRadius: 'var(--radius)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: (!newTitle.trim() || isSubmitting) ? 'not-allowed' : 'pointer', opacity: (!newTitle.trim() || isSubmitting) ? 0.6 : 1, boxShadow: (!newTitle.trim() || isSubmitting) ? 'none' : 'var(--shadow-accent)', transition: 'all 0.2s' }}
-          onMouseEnter={e => { if (newTitle.trim() && !isSubmitting) e.currentTarget.style.background = 'var(--accent-hover)' }}
-          onMouseLeave={e => { if (newTitle.trim() && !isSubmitting) e.currentTarget.style.background = 'var(--accent)' }}
+          className="sketch-btn sketch-btn-accent"
+          style={{ padding: '6px 16px', alignSelf: 'flex-end', height: '36px' }}
         >
-          {isSubmitting ? 'Adding...' : 'Add Goal'}
+          {isSubmitting ? 'Adding...' : 'Add Goal ✏️'}
         </button>
       </form>
 
       {goals.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '36px 20px', color: 'var(--text-muted)', fontSize: '14px', border: '1px dashed var(--border)', borderRadius: 'var(--radius)' }}>
-          No goals set for today. Add one above to kickstart your day!
+        <div 
+          style={{ 
+            textAlign: 'center', 
+            padding: '30px 20px', 
+            color: 'var(--text-muted)', 
+            fontFamily: 'var(--hand)', 
+            fontWeight: 'bold',
+            fontSize: '16px', 
+            border: '2px dashed var(--border)', 
+            borderRadius: '8px',
+            background: 'rgba(255,255,255,0.4)',
+            marginLeft: '32px',
+            position: 'relative',
+            zIndex: 5
+          }}
+        >
+          Your list is empty! Add a daily task above to kickstart your study session.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '32px', position: 'relative', zIndex: 5 }}>
           {goals.map(goal => (
             <div 
               key={goal.id} 
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: '12px', 
-                padding: '12px 16px', 
-                background: 'var(--bg)', 
-                border: '1px solid var(--border)', 
-                borderRadius: 'var(--radius)', 
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)', 
-                ...(goal.completed ? { opacity: 0.65 } : {}) 
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = goal.completed ? 'var(--border)' : 'var(--border-hover)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = 'var(--border)'
+                gap: '14px', 
+                padding: '4px 0', 
+                transition: 'all 0.2s', 
+                ...(goal.completed ? { opacity: 0.7 } : {}) 
               }}
             >
+              {/* Sketchy checkbox */}
               <div 
                 onClick={() => handleToggle(goal.id, goal.completed)}
-                style={{ width: '20px', height: '20px', borderRadius: '5px', border: `2px solid ${goal.completed ? 'var(--green)' : 'var(--border-hover)'}`, background: goal.completed ? 'var(--green)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' }}
+                style={{ 
+                  width: '20px', 
+                  height: '20px', 
+                  border: '2.5px solid var(--border)', 
+                  borderRadius: '6px 4px 7px 5px / 5px 6px 4px 7px',
+                  background: goal.completed ? 'var(--hl-green)' : '#ffffff', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  cursor: 'pointer', 
+                  flexShrink: 0, 
+                  boxShadow: '1px 1px 0px var(--border)'
+                }}
               >
-                {goal.completed && <svg width="10" height="10" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#000" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                {goal.completed && (
+                  <svg width="12" height="12" viewBox="0 0 12 12" style={{ overflow: 'visible' }}>
+                    <path 
+                      d="M2.5 5.5l3 3.5 5-7.5" 
+                      stroke="var(--green)" 
+                      strokeWidth="2.5" 
+                      fill="none" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
               </div>
 
               {editingId === goal.id ? (
-                <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
+                <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     autoFocus
+                    className="sketch-input"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') saveEdit(goal.id);
                       if (e.key === 'Escape') cancelEdit();
                     }}
-                    style={{ flex: 1, padding: '6px 12px', background: 'var(--bg-2)', border: '1px solid var(--accent)', borderRadius: '6px', color: 'var(--text)', fontSize: '14px', outline: 'none' }}
+                    style={{ flex: 1, padding: '2px 0' }}
                   />
-                  <button onClick={() => saveEdit(goal.id)} style={{ background: 'transparent', border: 'none', color: 'var(--green)', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Save</button>
-                  <button onClick={cancelEdit} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+                  <button onClick={() => saveEdit(goal.id)} className="sketch-btn" style={{ padding: '4px 10px', fontSize: '12px', background: 'var(--hl-green)' }}>Save</button>
+                  <button onClick={cancelEdit} className="sketch-btn" style={{ padding: '4px 10px', fontSize: '12px' }}>Cancel</button>
                 </div>
               ) : (
-                <div style={{ flex: 1, fontSize: '14px', textDecoration: goal.completed ? 'line-through' : 'none', color: goal.completed ? 'var(--text-muted)' : 'var(--text)', wordBreak: 'break-word', fontWeight: goal.completed ? 400 : 500 }}>
+                <div 
+                  style={{ 
+                    flex: 1, 
+                    fontSize: '17px', 
+                    fontFamily: 'var(--hand)',
+                    fontWeight: 'bold',
+                    textDecoration: goal.completed ? 'line-through' : 'none', 
+                    color: goal.completed ? 'var(--text-muted)' : 'var(--text)', 
+                    wordBreak: 'break-word',
+                    lineHeight: '24px'
+                  }}
+                >
                   {goal.title}
                 </div>
               )}
 
               {editingId !== goal.id && (
                 <div style={{ display: 'flex', gap: '8px', opacity: 0.7 }}>
-                  <button onClick={() => startEdit(goal)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', fontSize: '13px' }} title="Edit">✎</button>
-                  <button onClick={() => handleDelete(goal.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', fontSize: '13px' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'} title="Delete">✖</button>
+                  <button 
+                    onClick={() => startEdit(goal)} 
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px' }} 
+                    title="Edit Task"
+                  >
+                    ✎
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(goal.id)} 
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px' }} 
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'} 
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'} 
+                    title="Delete Task"
+                  >
+                    ✖
+                  </button>
                 </div>
               )}
             </div>
