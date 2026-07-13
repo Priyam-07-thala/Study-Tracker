@@ -41,7 +41,7 @@ export default function StudyPlan({ subjectId, lectures, subject }) {
 
   useEffect(() => {
     fetchPlan()
-  }, [subjectId])
+  }, [subjectId, lectures])
 
   const handleGenerate = async () => {
     try {

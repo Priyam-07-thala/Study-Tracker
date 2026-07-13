@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { importPlaylist } from '../api/youtube'
 
-export default function CreateSubjectModal({ onClose, onSubmit }) {
+export default function CreateSubjectModal({ onClose, onSubmit, onRefresh }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [playlistUrl, setPlaylistUrl] = useState('')
@@ -30,6 +30,9 @@ export default function CreateSubjectModal({ onClose, onSubmit }) {
         await importPlaylist(created.id, playlistUrl.trim())
       }
       
+      if (onRefresh) {
+        onRefresh()
+      }
       onClose() 
     }
     catch (err) { 

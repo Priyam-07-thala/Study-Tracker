@@ -71,9 +71,9 @@ class PlaylistImportRequest(BaseModel):
     @field_validator("playlist_url")
     @classmethod
     def validate_youtube_url(cls, v: str) -> str:
-        if re.search(r"list=([A-Za-z0-9_\-]+)", v):
-            return v
-        raise ValueError("URL does not contain a YouTube playlist ID (list=...)")
+        if not v.strip():
+            raise ValueError("Input cannot be empty")
+        return v.strip()
 
 class PlaylistImportResponse(BaseModel):
     inserted: int

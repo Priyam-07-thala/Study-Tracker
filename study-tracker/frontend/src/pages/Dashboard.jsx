@@ -8,7 +8,7 @@ import Mascot from '../components/Mascot'
 import { useSubjects } from '../hooks/useSubjects'
 
 export default function Dashboard() {
-  const { subjects, loading, error, addSubject, editSubjectAction, removeSubjectAction, pauseSubjectAction, resumeSubjectAction } = useSubjects()
+  const { subjects, loading, error, refetch, addSubject, editSubjectAction, removeSubjectAction, pauseSubjectAction, resumeSubjectAction } = useSubjects()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingSubject, setEditingSubject] = useState(null)
 
@@ -170,7 +170,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {showCreateModal && <CreateSubjectModal onClose={() => setShowCreateModal(false)} onSubmit={addSubject} />}
+      {showCreateModal && <CreateSubjectModal onClose={() => setShowCreateModal(false)} onSubmit={addSubject} onRefresh={refetch} />}
       {editingSubject && <EditSubjectModal subject={editingSubject} onClose={() => setEditingSubject(null)} onSubmit={editSubjectAction} />}
     </div>
   )

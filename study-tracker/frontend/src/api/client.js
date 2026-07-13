@@ -18,7 +18,26 @@ api.interceptors.response.use(
       localStorage.removeItem('username')
       window.location.href = '/login'
     }
-    const msg = err.response?.data?.detail || err.message || 'Unknown error'
+    
+    let msg = 'Unknown error'
+    if (err.response?.data?.detail) {
+      const detail = err.response.data.detail
+      if (typeof detail === 'string') {
+        msg = detail
+      } else if (Array.isArray(detail)) {
+        msg = detail.map(d => d.msg || d.message || JSON.stringify(d)).join(', ')
+      } else {
+        msg = JSON.stringify(detail)
+      }
+    } else {
+      msg = err.message || msg
+    }
+    
+    // Remove "Value error, " prefix from Pydantic validator errors to make them clean
+    if (msg.startsWith('Value error, ')) {
+      msg = msg.replace('Value error, ', '')
+    }
+
     return Promise.reject(new Error(msg)) 
   }
 )
