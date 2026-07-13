@@ -12,86 +12,105 @@ def generate_study_plan(db: Session, subject_id: int, hours_per_day: float = Non
         raise HTTPException(status_code=404, detail="Subject not found")
 
     # Fetch all lectures for this subject in order
-    lectures = db.scalars(
+    all_lectures = db.scalars(
         select(Lecture)
         .where(Lecture.subject_id == subject_id)
         .order_by(Lecture.lecture_order)
     ).all()
 
-    if not lectures:
+    if not all_lectures:
         raise HTTPException(status_code=400, detail="No lectures found for this subject")
 
-    # Determine day partitions
-    N = len(lectures)
+    # Determine start_date based on subject creation date
+    start_date = subject.created_at.date()
+    today = date.today()
+    days_passed = (today - start_date).days + 1
+    if days_passed < 1:
+        days_passed = 1
+
+    # Split into completed and uncompleted
+    completed_lecs = [l for l in all_lectures if l.completed]
+    uncompleted_lecs = [l for l in all_lectures if not l.completed]
+
+    # Partition completed lectures over the past days (1 to days_passed - 1)
+    past_days_assignments = []
+    num_past_days = days_passed - 1
     
-    if target_days:
-        if target_days < 1:
-            target_days = 1
-        D = min(N, target_days)
-        
-        # Calculate daily target
-        durations = [l.duration or 0 for l in lectures]
-        total_duration = sum(durations)
-        
-        # Guard for zero duration lectures
-        effective_durations = durations if total_duration > 0 else [1] * N
-        effective_total = sum(effective_durations)
-        
-        # Calculate cumulative durations
-        cum = [0] * (N + 1)
-        for i in range(N):
-            cum[i + 1] = cum[i] + effective_durations[i]
-            
-        target_avg = effective_total / D
-        
-        # Find optimal partition points
-        partition_ends = []
-        idx = 0
-        for d in range(1, D):
-            target_cum = d * target_avg
-            best_end = idx + 1
-            min_diff = float('inf')
-            
-            for end in range(idx + 1, N - D + d + 1):
-                diff = abs(cum[end] - target_cum)
-                if diff < min_diff:
-                    min_diff = diff
-                    best_end = end
-            
-            partition_ends.append(best_end)
-            idx = best_end
-        partition_ends.append(N)
-        
-        # Now construct the day assignments
-        day_lectures = []
-        idx = 0
-        for end in partition_ends:
-            day_lectures.append(lectures[idx:end])
-            idx = end
-            
-        # Calculate hours_per_day
-        hours_per_day = round((total_duration / D) / 3600.0, 2) if total_duration > 0 else 0.5
+    if num_past_days > 0 and completed_lecs:
+        n_comp = len(completed_lecs)
+        avg_comp = n_comp / num_past_days
+        for d in range(num_past_days):
+            start_idx = int(d * avg_comp)
+            end_idx = int((d + 1) * avg_comp) if d < num_past_days - 1 else n_comp
+            past_days_assignments.append(completed_lecs[start_idx:end_idx])
     else:
-        # Standard greedy packing based on hours_per_day
-        hours_per_day = hours_per_day or 2.0
-        max_seconds_per_day = int(hours_per_day * 3600)
-        
-        day_lectures = []
-        current_day = []
-        current_duration = 0
-        
-        for lecture in lectures:
-            duration = lecture.duration or 0
-            if current_duration + duration > max_seconds_per_day and current_day:
-                day_lectures.append(current_day)
-                current_day = []
-                current_duration = 0
-            current_day.append(lecture)
-            current_duration += duration
-        if current_day:
-            day_lectures.append(current_day)
+        for d in range(num_past_days):
+            past_days_assignments.append([])
+
+    # Partition uncompleted lectures for today and future days (starting at days_passed)
+    future_days_assignments = []
+    
+    if uncompleted_lecs:
+        n_uncomp = len(uncompleted_lecs)
+        if target_days:
+            remaining_days = target_days - num_past_days
+            if remaining_days < 1:
+                remaining_days = 1
+                
+            D = min(n_uncomp, remaining_days)
+            durations = [l.duration or 0 for l in uncompleted_lecs]
+            total_duration = sum(durations)
+            effective_durations = durations if total_duration > 0 else [1] * n_uncomp
+            effective_total = sum(effective_durations)
             
-    # Check if a plan already exists
+            cum = [0] * (n_uncomp + 1)
+            for i in range(n_uncomp):
+                cum[i + 1] = cum[i] + effective_durations[i]
+                
+            target_avg = effective_total / D
+            partition_ends = []
+            idx = 0
+            for d in range(1, D):
+                target_cum = d * target_avg
+                best_end = idx + 1
+                min_diff = float('inf')
+                for end in range(idx + 1, n_uncomp - D + d + 1):
+                    diff = abs(cum[end] - target_cum)
+                    if diff < min_diff:
+                        min_diff = diff
+                        best_end = end
+                partition_ends.append(best_end)
+                idx = best_end
+            partition_ends.append(n_uncomp)
+            
+            idx = 0
+            for end in partition_ends:
+                future_days_assignments.append(uncompleted_lecs[idx:end])
+                idx = end
+                
+            hours_per_day = round((total_duration / D) / 3600.0, 2) if total_duration > 0 else 0.5
+        else:
+            hours_per_day = hours_per_day or 2.0
+            max_seconds_per_day = int(hours_per_day * 3600)
+            
+            current_day = []
+            current_duration = 0
+            for lecture in uncompleted_lecs:
+                duration = lecture.duration or 0
+                if current_duration + duration > max_seconds_per_day and current_day:
+                    future_days_assignments.append(current_day)
+                    current_day = []
+                    current_duration = 0
+                current_day.append(lecture)
+                current_duration += duration
+            if current_day:
+                future_days_assignments.append(current_day)
+    else:
+        future_days_assignments.append([])
+        hours_per_day = hours_per_day or 2.0
+
+    all_days_assignments = past_days_assignments + future_days_assignments
+
     existing_plan = db.scalar(select(StudyPlan).where(StudyPlan.subject_id == subject_id))
     if existing_plan:
         db.delete(existing_plan)
@@ -100,12 +119,12 @@ def generate_study_plan(db: Session, subject_id: int, hours_per_day: float = Non
     plan = StudyPlan(
         subject_id=subject_id,
         hours_per_day=hours_per_day,
-        start_date=date.today(),
+        start_date=start_date,
     )
     db.add(plan)
     db.flush()
 
-    for day_idx, day_lecs in enumerate(day_lectures, start=1):
+    for day_idx, day_lecs in enumerate(all_days_assignments, start=1):
         plan_day = StudyPlanDay(
             plan_id=plan.id,
             day_number=day_idx,

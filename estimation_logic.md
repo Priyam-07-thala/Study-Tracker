@@ -65,46 +65,52 @@ def _parse_iso_duration(duration_str: str) -> int:
 ## 2. Study Plan Scheduling & Day Partitioning Algorithms
 * **Location in Code:** [plan_service.py](file:///c:/Users/User/Desktop/study-tracker2/study-tracker/backend/app/services/plan_service.py) (`generate_study_plan` function)
 
-When generating a study plan, the application partitions lectures into balanced daily study blocks using one of two algorithms:
+When generating a study plan, the application partitions lectures into daily study blocks using one of two algorithms, taking into account completed vs. uncompleted lectures and backdating the plan start date to when the subject was created.
 
-### Algorithm A: Greedy Packing (Based on Hours per Day)
+### A. Core Adaptive Partitioning Steps:
+1. **Backdate Plan Start Date:** Sets the plan's `start_date` to `subject.created_at.date()` (so the user's progress naturally aligns with their study history).
+2. **Calculate Days Passed:** Computes the number of days elapsed from `start_date` to today: `days_passed = (today - start_date).days + 1`.
+3. **Partition Completed Lectures:** Places all already completed lectures on past days (Day 1 through Day `days_passed - 1`).
+4. **Partition Uncompleted Lectures:** Packs remaining uncompleted lectures starting from Day `days_passed` (today) onwards.
+
+---
+
+### Algorithm A: Greedy Packing (Based on Hours per Day for Uncompleted Lectures)
 Used when the student selects a **Target Study Hours/Day** constraint (e.g., 2 hours/day).
-* **Logic:** Sequentially adds lectures to "Day 1". If adding the next lecture exceeds the user's daily study duration limit, the algorithm seals "Day 1" and starts packing "Day 2".
+* **Logic:** Packs uncompleted lectures sequentially starting from `days_passed` (today). If adding the next lecture exceeds the daily target study limit, it seals that day and starts packing the next.
 
 ```python
 hours_per_day = hours_per_day or 2.0
 max_seconds_per_day = int(hours_per_day * 3600)
 
-day_lectures = []
 current_day = []
 current_duration = 0
-
-for lecture in lectures:
+for lecture in uncompleted_lecs:
     duration = lecture.duration or 0
-    # If adding this video exceeds the daily target limit, create a new day
     if current_duration + duration > max_seconds_per_day and current_day:
-        day_lectures.append(current_day)
+        future_days_assignments.append(current_day)
         current_day = []
         current_duration = 0
     current_day.append(lecture)
     current_duration += duration
 if current_day:
-    day_lectures.append(current_day)
+    future_days_assignments.append(current_day)
 ```
+
+---
 
 ### Algorithm B: Balanced Load Partitioning (Based on Target Days Count)
 Used when the student selects a **Total Target Days** constraint (e.g., finish the subject in exactly 7 days).
-* **Objective:** Find partition lines that split the lectures into $D$ days so that the daily study load is as balanced and close to the mathematical average as possible.
-* **Logic:** 
-  1. Computes the total course duration ($T$) and calculates the target average daily study duration: $\text{Target Avg} = T / D$.
-  2. Creates a cumulative sum array of lecture durations.
-  3. Uses a optimization pass to find partition boundary indices ($0 \dots N$) where the cumulative sum is closest to multiples of the daily target average ($d \times \text{Target Avg}$).
+* **Logic:** Divides the remaining uncompleted lectures evenly over the remaining days of the plan (`target_days - num_past_days`) using cumulative sum average optimization.
 
 ```python
-target_avg = total_duration / D
-cum = [0] * (N + 1)
-for i in range(N):
-    cum[i + 1] = cum[i] + durations[i]
+remaining_days = target_days - num_past_days
+D = min(n_uncomp, remaining_days)
+
+target_avg = effective_total / D
+cum = [0] * (n_uncomp + 1)
+for i in range(n_uncomp):
+    cum[i + 1] = cum[i] + effective_durations[i]
 
 partition_ends = []
 idx = 0
@@ -112,17 +118,14 @@ for d in range(1, D):
     target_cum = d * target_avg
     best_end = idx + 1
     min_diff = float('inf')
-    
-    # Locate the lecture boundary index that gets closest to the target load
-    for end in range(idx + 1, N - D + d + 1):
+    for end in range(idx + 1, n_uncomp - D + d + 1):
         diff = abs(cum[end] - target_cum)
         if diff < min_diff:
             min_diff = diff
             best_end = end
-            
     partition_ends.append(best_end)
     idx = best_end
-partition_ends.append(N)
+partition_ends.append(n_uncomp)
 ```
 
 ---
@@ -130,8 +133,8 @@ partition_ends.append(N)
 ## 3. Adaptive Planning (Adjust Plan Logic)
 * **Location in Code:** [plan_service.py](file:///c:/Users/User/Desktop/study-tracker2/study-tracker/backend/app/services/plan_service.py) (`adjust_plan` function)
 
-If a student falls behind schedule (creating a negative deviation), they can click **Adjust Schedule**.
-* **Logic:** Instead of forcing the student to study extra hours to catch up, the system recalculates the plan. It gathers all **uncompleted lectures**, resets the start date of the plan to **today**, and runs the partitioning algorithm again starting with Day 1. This redistributes the remaining load gracefully over the remaining time.
+If a student falls behind schedule, clicking **Adjust Schedule** deletes the current plan and regenerates it.
+* **Logic:** Because `generate_study_plan` partitions completed lectures over the past days and uncompleted lectures starting from today onwards, calling it again automatically reschedules all remaining uncompleted lectures starting today, distributing them smoothly over the future days.
 
 ---
 
