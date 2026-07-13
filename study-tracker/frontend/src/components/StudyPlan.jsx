@@ -188,7 +188,23 @@ export default function StudyPlan({ subjectId, lectures, subject }) {
   const effectiveDate = subject?.is_paused && subject?.paused_at 
     ? new Date(subject.paused_at) 
     : new Date()
-  const daysPassed = Math.max(1, Math.floor((effectiveDate - new Date(plan.start_date)) / (1000 * 60 * 60 * 24)) + 1)
+  
+  // Parse YYYY-MM-DD to a local date object
+  const startDateParts = plan.start_date.split('-')
+  const planStartDateLocal = new Date(
+    parseInt(startDateParts[0]), 
+    parseInt(startDateParts[1]) - 1, 
+    parseInt(startDateParts[2])
+  )
+  
+  // Strip time components to compare local date boundaries
+  const todayLocal = new Date(effectiveDate.getFullYear(), effectiveDate.getMonth(), effectiveDate.getDate())
+  
+  // Calculate difference in days
+  const daysPassed = Math.max(
+    1,
+    Math.round((todayLocal.getTime() - planStartDateLocal.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  )
   const todaysPlan = plan.days.find(d => d.day_number === daysPassed)
 
   return (
