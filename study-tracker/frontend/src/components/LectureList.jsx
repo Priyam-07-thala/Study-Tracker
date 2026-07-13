@@ -90,7 +90,12 @@ function LectureRow({ lecture, onToggle, onEdit, onDelete, onMoveUp, onMoveDown,
               fontWeight: 'bold'
             }}
           >
-            Finished on {new Date(lecture.completed_at).toLocaleDateString()} 🎓
+            Finished on {(() => {
+              const d = new Date(lecture.completed_at);
+              const day = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              return `${day}/${month}/${d.getFullYear()}`;
+            })()} 🎓
           </div>
         )}
       </div>

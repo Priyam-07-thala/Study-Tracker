@@ -241,7 +241,12 @@ export default function StudyPlan({ subjectId, lectures, subject }) {
             </p>
             {status.estimated_completion_date && (
               <p style={{ fontSize: '14px', fontFamily: 'var(--hand)', fontWeight: 'bold', color: 'var(--text)', marginTop: '2px' }}>
-                Estimated Completion: <strong>{new Date(status.estimated_completion_date).toLocaleDateString()}</strong>
+                Estimated Completion: <strong>{(() => {
+                  const d = new Date(status.estimated_completion_date);
+                  const day = String(d.getDate()).padStart(2, '0');
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  return `${day}/${month}/${d.getFullYear()}`;
+                })()}</strong>
               </p>
             )}
           </div>
