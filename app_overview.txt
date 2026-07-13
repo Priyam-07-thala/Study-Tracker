@@ -22,26 +22,25 @@ benefits, and proposed future improvements.
     - Centralized dashboard detailing overall completion rates and status of
       all active courses.
 
-*   YouTube Playlist Import:
+*   Flexible YouTube Import (Playlists, Videos & Multi-links):
     - Direct integration with the YouTube Data API v3.
-    - Allows students to import entire playlists by entering the playlist URL
-      or ID.
-    - Automatically extracts video metadata (titles, durations, sequence
-      order) and populates the subject's lecture list.
+    - Allows students to import entire playlists, single videos, YouTube shorts, or shared links by entering their URLs or IDs.
+    - Supports batch importing multiple links/IDs at once (separated by commas, spaces, or newlines).
+    - Automatically extracts video metadata (titles, durations, sequence order) and populates the subject's lecture list.
 
 *   Lecture & Progress Tracking:
     - Granular, interactive lecture checklists for each subject.
-    - Toggle individual lectures or perform batch actions to mark videos as
-      completed.
+    - Toggle individual lectures or perform batch actions to mark videos as completed.
     - Real-time progress bars indicating percentage completion.
 
-*   Smart Study Planner:
-    - Generates personalized study schedules based on student parameters:
-      daily available study hours and target completion deadlines.
-    - Automatically distributes YouTube lectures/videos into balanced daily
-      blocks.
-    - Dynamic "Adjust Plan" feature: Allows students to recalculate schedules,
-      adapting the study plan if they get ahead of or fall behind their targets.
+*   Smart Adaptive Study Planner:
+    - Generates personalized study schedules based on daily available study hours or target completion deadlines.
+    - Automatically distributes YouTube lectures/videos into balanced daily blocks.
+    - Chronological Completed/Uncompleted Sorting: Backdates plans to the subject creation date, keeping completed lectures in the past, and scheduling remaining uncompleted lectures starting from today.
+    - Dynamic "Adjust Plan" feature: Allows students to recalculate schedules, adapting the remaining study plan starting today if they get ahead of or fall behind their targets.
+
+*   Real-time UI State Synchronization:
+    - All dashboard progress counters, study planner assignments, and progress chart stats synchronize and update instantly in the UI upon checklist toggling or playlist importing without requiring manual page reloads.
 
 *   Daily Goals (Micro-Tasking To-Do List):
     - Integrated daily goal manager (to-do list) directly on the interface.

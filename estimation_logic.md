@@ -185,3 +185,19 @@ if len(transcript) > 400000:
   * `"qna"`: Exam-style practice questions and answers.
 * **Chat Context Injection:** Initiates the Gemini chat by setting the system instructions dynamically:
   `"You are a helpful AI assistant specialized in tutoring the user on the subject of the following playlist transcript. Use the transcript provided as your main source of truth."`
+
+---
+
+## 6. How a "Day" is Counted in the System
+The application calculates which study day you are currently on strictly by **local calendar date boundaries** (midnight-to-midnight), rather than a rolling 24-hour window.
+
+### Calculation Logic:
+1. **Normalization:** The system extracts the local year, month, and day of both the current date (`todayLocal`) and the plan's starting date (`planStartDateLocal`), setting their time components to `00:00:00` local time.
+2. **Elapsed Days Difference:**
+   $$\text{Days Passed} = \text{Math.max}\left(1, \text{Math.round}\left(\frac{\text{todayLocal} - \text{planStartDateLocal}}{1000 \times 60 \times 60 \times 24}\right) + 1\right)$$
+3. **Behavior:**
+   * **Day 1:** Starts the moment you create the plan (e.g. July 11th from 12:00 AM to 11:59 PM).
+   * **Day 2:** Begins exactly at **12:00 AM midnight local time** on the next calendar day (July 12th).
+   * **Day 3:** Begins at **12:00 AM midnight local time** on July 13th.
+   * This ensures your daily study assignment rolls over at midnight local time, regardless of what hour of the day you study.
+
