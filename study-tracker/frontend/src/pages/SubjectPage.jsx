@@ -23,6 +23,13 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
         setTimeout(() => {
           try {
             playerRef.current = new window.YT.Player('yt-player-iframe', {
+              videoId: videoId,
+              playerVars: {
+                autoplay: 0,
+                rel: 0,
+                enablejsapi: 1,
+                origin: window.location.origin
+              },
               events: {
                 onReady: (event) => {
                   playerRef.current = event.target
@@ -35,7 +42,7 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
           } catch (err) {
             console.error("Failed to initialize YT Player:", err)
           }
-        }, 300)
+        }, 100)
       }
     }
     
@@ -47,6 +54,13 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
     
     return () => {
       clearInterval(playerInitInterval)
+      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+        try {
+          playerRef.current.destroy()
+        } catch (e) {
+          console.error("Error destroying YT Player:", e)
+        }
+      }
       playerRef.current = null
     }
   }, [videoId, playerRef])
@@ -64,12 +78,9 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
         boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5)'
       }}
     >
-      <iframe
+      <div
         id="yt-player-iframe"
-        src={`https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
       />
     </div>
   )
