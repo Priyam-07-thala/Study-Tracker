@@ -57,7 +57,7 @@ export default function Navbar() {
                 paddingBottom: '10px'
               }}
             >
-              📝 <span style={{ color: 'var(--accent)' }}>Study</span>Scribbles
+              📝 <span style={{ color: 'var(--accent)' }}>Study</span> Tracker
             </h1>
           </Link>
         </div>
@@ -192,7 +192,7 @@ export default function Navbar() {
       >
         <Link to="/" style={{ textDecoration: 'none', color: 'var(--text)' }}>
           <h1 style={{ fontFamily: 'var(--sans)', fontSize: '18px', fontWeight: 800 }}>
-            📝 StudyScribbles
+            📝 Study Tracker
           </h1>
         </Link>
         

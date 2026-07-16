@@ -74,7 +74,7 @@ export default function Login() {
               marginBottom: '4px'
             }}
           >
-            StudyScribbles ✏️
+            Study Tracker ✏️
           </h1>
           <p style={{ fontFamily: 'var(--hand)', fontSize: '16px', color: '#fef3c7', fontWeight: 'bold' }}>
             smart handwriting tracker & planner
