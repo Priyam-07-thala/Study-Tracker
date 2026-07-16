@@ -55,9 +55,14 @@ benefits, and proposed future improvements.
       clarifications without leaving the app.
 
 *   Visual Analytics & Completion Prediction:
-    - Rich visualizations powered by Recharts (line/bar charts) to track historical
-      progress trends.
+    - Rich visualizations powered by Recharts (line/bar charts) to track historical progress trends.
     - Provides completion predictions and timelines based on historical velocity.
+
+*   Embedded YouTube Video Player & Interactive Bookmarks:
+    - Seamlessly embeds the YouTube Player directly inside the workspace using the official YouTube Player Iframe API.
+    - One-Click Timestamp Pinning: Automatically captures the current playback time when submitting notes.
+    - Instant Player Seeking: Click any saved bookmark's timestamp to jump the video directly to that second and resume playing.
+    - Owner-Verification Security: Relational database storage strictly verifies and secures bookmarks for the user.
 
 
 --------------------------------------------------------------------------------
@@ -94,13 +99,6 @@ benefits, and proposed future improvements.
 --------------------------------------------------------------------------------
 3. HOW CAN WE IMPROVE THE APP FURTHER?
 --------------------------------------------------------------------------------
-
-*   Embedded YouTube Video Player:
-    - Integrate the YouTube player inside the web application so students can watch
-      their lectures directly inside Study Tracker, with features like automatic progress
-      syncing (e.g., auto-completing the lecture when the video finishes).
-    - Provide a split-screen interface where students can watch the video while taking
-      notes or chatting with the AI Assistant.
 
 *   AI-Generated Quizzes and Flashcards:
     - Leverage the AI engine to generate multiple-choice questions, quizzes, and
