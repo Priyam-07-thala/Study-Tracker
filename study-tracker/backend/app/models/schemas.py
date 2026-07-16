@@ -167,3 +167,18 @@ class AIChatRequest(BaseModel):
 
 class AINoteGenerateRequest(BaseModel):
     prompt_type: str  # e.g., "full", "short", "qna"
+
+
+class BookmarkCreate(BaseModel):
+    timestamp: int
+    note: str
+
+
+class BookmarkOut(BaseModel):
+    id: int
+    lecture_id: int
+    timestamp: int
+    note: str
+    created_at: datetime
+    model_config = {"from_attributes": True}
+

@@ -10,6 +10,7 @@ import EditSubjectModal from '../components/EditSubjectModal'
 import { useLectures } from '../hooks/useLectures'
 import { useProgress } from '../hooks/useProgress'
 import { getSubjects, updateSubject, deleteSubject, pauseSubject, resumeSubject } from '../api/subjects'
+import { getBookmarks, addBookmark, deleteBookmark } from '../api/lectures'
 import AIAssistant from '../components/AIAssistant'
 
 export default function SubjectPage() {
@@ -23,6 +24,12 @@ export default function SubjectPage() {
   const [activeTab, setActiveTab] = useState('lectures')
   const [activeLecture, setActiveLecture] = useState(null)
   const [showAdTip, setShowAdTip] = useState(() => !localStorage.getItem('hideAdTip'))
+  
+  // Bookmarks State & Player Ref
+  const [bookmarks, setBookmarks] = useState([])
+  const [bookmarkNote, setBookmarkNote] = useState('')
+  const [bookmarksLoading, setBookmarksLoading] = useState(false)
+  const playerRef = React.useRef(null)
 
   const { lectures, loading: lecturesLoading, error: lecturesError, refetch, toggleLecture, pendingIds, editLectureAction, removeLectureAction, clearLecturesAction, reorderLecturesAction } = useLectures(subjectId)
   const { progress, loading: progressLoading, refetch: refetchProgress } = useProgress(subjectId)
@@ -33,6 +40,138 @@ export default function SubjectPage() {
       setSubjectLoading(false)
     }).catch(() => setSubjectLoading(false))
   }, [subjectId, lectures])
+
+  // Load YouTube Player Iframe API Script
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script')
+      tag.src = "https://www.youtube.com/iframe_api"
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+    }
+  }, [])
+
+  // Initialize YT Player on iframe when activeLecture changes
+  useEffect(() => {
+    if (!activeLecture) {
+      playerRef.current = null
+      return
+    }
+    
+    let playerInitInterval
+    
+    const initPlayer = () => {
+      if (window.YT && window.YT.Player) {
+        clearInterval(playerInitInterval)
+        setTimeout(() => {
+          try {
+            playerRef.current = new window.YT.Player('yt-player-iframe', {
+              events: {
+                onReady: (event) => {
+                  playerRef.current = event.target
+                },
+                onError: (e) => {
+                  console.error("YT Player Error:", e)
+                }
+              }
+            })
+          } catch (err) {
+            console.error("Failed to initialize YT Player:", err)
+          }
+        }, 300)
+      }
+    }
+    
+    if (window.YT && window.YT.Player) {
+      initPlayer()
+    } else {
+      playerInitInterval = setInterval(initPlayer, 200)
+    }
+    
+    return () => {
+      clearInterval(playerInitInterval)
+      playerRef.current = null
+    }
+  }, [activeLecture])
+
+  // Fetch bookmarks for active lecture
+  useEffect(() => {
+    if (activeLecture) {
+      setBookmarksLoading(true)
+      getBookmarks(activeLecture.id)
+        .then(list => {
+          setBookmarks(list)
+          setBookmarksLoading(false)
+        })
+        .catch(err => {
+          console.error("Failed to fetch bookmarks:", err)
+          setBookmarksLoading(false)
+        })
+    } else {
+      setBookmarks([])
+    }
+  }, [activeLecture])
+
+  // Add a new bookmark note at the current video timestamp
+  const handleAddBookmark = async (e) => {
+    e.preventDefault()
+    if (!activeLecture) return
+    if (!bookmarkNote.trim()) return
+
+    let timestamp = 0
+    if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
+      timestamp = Math.floor(playerRef.current.getCurrentTime())
+    } else {
+      alert("Video player is still loading or not playing yet. Please start the video and try again.")
+      return
+    }
+
+    try {
+      const newB = await addBookmark(activeLecture.id, timestamp, bookmarkNote.trim())
+      setBookmarks(prev => [...prev, newB].sort((a, b) => a.timestamp - b.timestamp))
+      setBookmarkNote('')
+    } catch (err) {
+      alert("Failed to add bookmark: " + err.message)
+    }
+  }
+
+  // Delete a bookmark note
+  const handleDeleteBookmark = async (bookmarkId) => {
+    if (window.confirm("Delete this bookmark note?")) {
+      try {
+        await deleteBookmark(bookmarkId)
+        setBookmarks(prev => prev.filter(b => b.id !== bookmarkId))
+      } catch (err) {
+        alert("Failed to delete bookmark: " + err.message)
+      }
+    }
+  }
+
+  // Seek the player to a timestamp
+  const handleSeekTo = (seconds) => {
+    if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
+      playerRef.current.seekTo(seconds, true)
+      if (typeof playerRef.current.playVideo === 'function') {
+        playerRef.current.playVideo()
+      }
+    } else {
+      alert("Player is loading. Please wait for the video to start playing.")
+    }
+  }
+
+  // Helper: Format seconds to MM:SS or HH:MM:SS
+  const formatTime = (seconds) => {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    const paddedM = String(m).padStart(2, '0')
+    const paddedS = String(s).padStart(2, '0')
+    
+    if (h > 0) {
+      return `${h}:${paddedM}:${paddedS}`
+    }
+    return `${m}:${paddedS}`
+  }
 
   const handleToggle = async (lectureId, completed) => {
     try { await toggleLecture(lectureId, completed); refetchProgress() }
@@ -347,25 +486,145 @@ export default function SubjectPage() {
             </div>
           )}
 
-          {/* YouTube iframe container with thick border */}
-          <div 
-            style={{ 
-              position: 'relative', 
-              paddingBottom: '56.25%', 
-              height: 0, 
-              overflow: 'hidden', 
-              borderRadius: '8px', 
-              border: '2.5px solid var(--border)',
-              background: '#000000',
-              boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5)'
-            }}
-          >
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${activeLecture.video_id}?autoplay=1&rel=0`}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
+          {/* Flex columns for Player and Bookmarks */}
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'stretch' }}>
+            {/* Left Column: Player (65%) */}
+            <div style={{ flex: '1 1 60%', minWidth: '320px', display: 'flex', flexDirection: 'column' }}>
+              <div 
+                style={{ 
+                  position: 'relative', 
+                  paddingBottom: '56.25%', 
+                  height: 0, 
+                  overflow: 'hidden', 
+                  borderRadius: '8px', 
+                  border: '2.5px solid var(--border)',
+                  background: '#000000',
+                  boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5)'
+                }}
+              >
+                <iframe
+                  id="yt-player-iframe"
+                  src={`https://www.youtube-nocookie.com/embed/${activeLecture.video_id}?autoplay=1&rel=0&enablejsapi=1`}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Bookmarks (35%) */}
+            <div 
+              style={{ 
+                flex: '1 1 30%', 
+                minWidth: '280px', 
+                background: '#ffffff',
+                border: '2px solid var(--border)',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '3px 3px 0px var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                maxHeight: '400px',
+                overflow: 'hidden'
+              }}
+            >
+              <h4 style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'var(--sans)', margin: '0 0 12px 0', borderBottom: '2px dashed var(--border)', paddingBottom: '6px' }}>
+                📌 TIMESTAMP BOOKMARKS
+              </h4>
+
+              {/* List of bookmarks */}
+              <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+                {bookmarksLoading ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}><Spinner size={20} /></div>
+                ) : bookmarks.length === 0 ? (
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'var(--hand)', fontWeight: 'bold', textAlign: 'center', margin: 'auto 0', padding: '0 10px', lineHeight: 1.4 }}>
+                    No notes saved for this lecture yet. Start playing, type a note, and pin it to a timestamp!
+                  </div>
+                ) : (
+                  bookmarks.map(b => (
+                    <div 
+                      key={b.id}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        gap: '8px', 
+                        padding: '6px 8px', 
+                        background: 'rgba(0,0,0,0.02)',
+                        border: '1.5px solid var(--border)',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        position: 'relative'
+                      }}
+                    >
+                      <button 
+                        onClick={() => handleSeekTo(b.timestamp)}
+                        className="sketch-btn"
+                        style={{ 
+                          padding: '2px 6px', 
+                          fontSize: '11px', 
+                          background: 'var(--hl-yellow)', 
+                          fontWeight: 'bold',
+                          flexShrink: 0
+                        }}
+                        title="Jump to time"
+                      >
+                        ⏱️ {formatTime(b.timestamp)}
+                      </button>
+                      <span style={{ fontFamily: 'var(--hand)', fontWeight: 'bold', wordBreak: 'break-word', flex: 1 }}>
+                        {b.note}
+                      </span>
+                      <button 
+                        onClick={() => handleDeleteBookmark(b.id)}
+                        style={{ 
+                          background: 'transparent', 
+                          border: 'none', 
+                          color: 'var(--text-muted)', 
+                          cursor: 'pointer', 
+                          fontSize: '14px', 
+                          fontWeight: 'bold',
+                          padding: '0 4px'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                        title="Delete note"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Form to add bookmark */}
+              <form onSubmit={handleAddBookmark} style={{ display: 'flex', gap: '6px', borderTop: '2px dashed var(--border)', paddingTop: '12px' }}>
+                <input 
+                  type="text"
+                  placeholder="Type a bookmark note..."
+                  value={bookmarkNote}
+                  onChange={e => setBookmarkNote(e.target.value)}
+                  style={{ 
+                    flex: 1, 
+                    padding: '6px 10px', 
+                    fontSize: '13px',
+                    border: '1.5px solid var(--border)',
+                    borderRadius: '6px',
+                    fontFamily: 'var(--hand)',
+                    fontWeight: 'bold',
+                    outline: 'none'
+                  }}
+                  maxLength={500}
+                  required
+                />
+                <button 
+                  type="submit"
+                  className="sketch-btn sketch-btn-accent"
+                  style={{ padding: '6px 10px', fontSize: '12px', flexShrink: 0 }}
+                  title="Pin note at current playback time"
+                >
+                  Pin Note 📌
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

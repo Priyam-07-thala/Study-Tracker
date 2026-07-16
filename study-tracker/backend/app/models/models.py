@@ -44,6 +44,9 @@ class Lecture(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     subject: Mapped["Subject"] = relationship("Subject", back_populates="lectures")
+    bookmarks: Mapped[list["LectureBookmark"]] = relationship(
+        "LectureBookmark", back_populates="lecture", cascade="all, delete-orphan", order_by="LectureBookmark.timestamp.asc()"
+    )
     __table_args__ = (
         UniqueConstraint("subject_id", "video_id", name="uq_subject_video"),
         Index("ix_lectures_subject_id", "subject_id"),
@@ -112,3 +115,14 @@ class AIChatMessage(Base):
     role: Mapped[str] = mapped_column(String(50), nullable=False)  # "user" or "model"
     content: Mapped[str] = mapped_column(String(5000), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class LectureBookmark(Base):
+    __tablename__ = "lecture_bookmarks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    lecture_id: Mapped[int] = mapped_column(Integer, ForeignKey("lectures.id", ondelete="CASCADE"), nullable=False)
+    timestamp: Mapped[int] = mapped_column(Integer, nullable=False)
+    note: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    lecture: Mapped["Lecture"] = relationship("Lecture", back_populates="bookmarks")
+

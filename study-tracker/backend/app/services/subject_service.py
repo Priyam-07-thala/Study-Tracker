@@ -107,3 +107,13 @@ def verify_lecture_owner(db: Session, lecture_id: int, user_id: int) -> Lecture:
     verify_subject_owner(db, lecture.subject_id, user_id)
     return lecture
 
+
+def verify_bookmark_owner(db: Session, bookmark_id: int, user_id: int):
+    from app.models.models import LectureBookmark
+    bookmark = db.get(LectureBookmark, bookmark_id)
+    if not bookmark:
+        raise HTTPException(status_code=404, detail="Bookmark not found")
+    verify_lecture_owner(db, bookmark.lecture_id, user_id)
+    return bookmark
+
+

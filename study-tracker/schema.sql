@@ -97,3 +97,13 @@ CREATE TABLE IF NOT EXISTS ai_chat_messages (
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_ai_chat_messages_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS lecture_bookmarks (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    lecture_id  INT NOT NULL,
+    timestamp   INT NOT NULL,
+    note        VARCHAR(500) NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_lecture_bookmarks_lecture FOREIGN KEY (lecture_id) REFERENCES lectures(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+

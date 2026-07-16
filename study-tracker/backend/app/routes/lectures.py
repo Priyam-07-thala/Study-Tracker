@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.schemas import LectureOut, LectureCompleteRequest, LectureEditRequest, LectureReorderRequest
-from app.services import lecture_service, subject_service
+from app.models.schemas import (
+    LectureOut, LectureCompleteRequest, LectureEditRequest, LectureReorderRequest,
+    BookmarkCreate, BookmarkOut
+)
+from app.services import lecture_service, subject_service, bookmark_service
 from app.routes.auth import get_current_user_id
 
 router = APIRouter(prefix="/lectures", tags=["Lectures"])
@@ -42,3 +45,22 @@ def reorder_lectures(subject_id: int, payload: LectureReorderRequest, user_id: i
 def delete_all_lectures(subject_id: int, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     subject_service.verify_subject_owner(db, subject_id, user_id)
     return lecture_service.delete_all_lectures(db, subject_id)
+
+
+@router.post("/{lecture_id}/bookmarks", response_model=BookmarkOut)
+def add_bookmark(lecture_id: int, payload: BookmarkCreate, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    subject_service.verify_lecture_owner(db, lecture_id, user_id)
+    return bookmark_service.create_bookmark(db, lecture_id, payload)
+
+
+@router.get("/{lecture_id}/bookmarks", response_model=list[BookmarkOut])
+def get_bookmarks(lecture_id: int, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    subject_service.verify_lecture_owner(db, lecture_id, user_id)
+    return bookmark_service.get_bookmarks_for_lecture(db, lecture_id)
+
+
+@router.delete("/bookmarks/{bookmark_id}")
+def delete_bookmark(bookmark_id: int, user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    subject_service.verify_bookmark_owner(db, bookmark_id, user_id)
+    return bookmark_service.delete_bookmark(db, bookmark_id)
+
