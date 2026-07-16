@@ -23,3 +23,23 @@ PROBLEM: EMBEDDED YOUTUBE PLAYER LATENCY AND BUFFERING (PAUSES)
 4. Troubleshooting recommendations for students:
    - If buffering persists, temporarily pause your adblocker (e.g. uBlock Origin) on the local domain (localhost) as it can block telemetry chunks.
    - Make sure your local internet network isn't throttling standard YouTube domains.
+
+--------------------------------------------------------------------------------
+
+PROBLEM 2: TIMESTAMP BOOKMARKS DEFAULT TO 00:00
+
+1. Description of the Issue:
+   After optimizing player loading (by memoizing the player and using stable components), the "Pin Note" feature saved all new bookmark timestamps as "00:00", failing to capture the actual current playback time of the video.
+
+2. Root Cause:
+   - Race Condition with Existing Iframe elements:
+     The code rendered the `<iframe>` element directly in HTML, then instantiated the YouTube Player class targeting that iframe ID.
+     Since the iframe often finished loading before the Player API script could execute its postMessage handshake, the `onReady` event listener never fired. 
+     This left the player instance in an un-synchronized state where calling `playerRef.current.getCurrentTime()` returned the fallback value of `0` (which is `00:00`).
+
+3. Solution Applied:
+   - SDK-Driven Iframe Creation:
+     Removed the raw `<iframe>` tag and replaced it with a simple `<div>` container.
+     We let the YouTube Player SDK dynamically construct and insert the iframe during instance creation. This registers all listener sockets *before* the iframe starts loading, guaranteeing a successful handshake and immediate synchronization so that `getCurrentTime()` returns the accurate seconds.
+     Implemented component cleanup by calling `playerRef.current.destroy()` on unmount to release resources cleanly.
+
