@@ -66,7 +66,7 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
     >
       <iframe
         id="yt-player-iframe"
-        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+        src={`https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
@@ -509,7 +509,7 @@ export default function SubjectPage() {
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'stretch' }}>
             {/* Left Column: Player (65%) */}
             <div style={{ flex: '1 1 60%', minWidth: '320px', display: 'flex', flexDirection: 'column' }}>
-              <YouTubePlayer videoId={activeLecture.video_id} playerRef={playerRef} />
+              <YouTubePlayer key={activeLecture.video_id} videoId={activeLecture.video_id} playerRef={playerRef} />
             </div>
 
             {/* Right Column: Bookmarks (35%) */}
