@@ -201,3 +201,43 @@ The application calculates which study day you are currently on strictly by **lo
    * **Day 3:** Begins at **12:00 AM midnight local time** on July 13th.
    * This ensures your daily study assignment rolls over at midnight local time, regardless of what hour of the day you study.
 
+---
+
+## 7. Subject Pausing & Resuming (Time-Shifting) Logic
+* **Location in Code:** [subject_service.py](file:///c:/Users/User/Desktop/study-tracker2/study-tracker/backend/app/services/subject_service.py) (`pause_subject` and `resume_subject` functions)
+
+To prevent students from accumulating massive "behind schedule" deviations when taking a break, the system freezes the timeline during a pause and offsets the calendar upon resumption.
+
+### A. Pausing Behavior (Frontend Freezing)
+When a subject is paused, the database records `is_paused = True` and the timestamp `paused_at`.
+* In the frontend, the date calculation locks `effectiveDate` to `paused_at` instead of checking the live calendar time:
+  ```javascript
+  const effectiveDate = subject?.is_paused && subject?.paused_at 
+    ? new Date(subject.paused_at) 
+    : new Date()
+  ```
+* This halts calendar progression; today's study assignment remains frozen on the last active day number.
+
+### B. Resuming Behavior (Backend Time-Shifting)
+When a subject is resumed, the backend calculates the exact number of days spent paused and shifts the study plan's start date forward by that duration:
+1. **Calculate Paused Duration:**
+   $$\text{Days Paused} = \text{Current Time} - \text{subject.paused_at}$$
+2. **Apply Offset to Database Plan:**
+   $$\text{plan.start_date} = \text{plan.start_date} + \text{Days Paused}$$
+
+```python
+# From subject_service.py
+now = datetime.utcnow()
+time_paused = now - subject.paused_at
+
+# Shift the StudyPlan start date forward by the number of days paused
+plan = db.scalar(select(StudyPlan).where(StudyPlan.subject_id == subject_id))
+if plan:
+    plan.start_date = plan.start_date + timedelta(days=time_paused.days)
+```
+
+### Example Scenario:
+* You complete **Day 2** tasks and pause the subject.
+* The subject remains paused for **2 days** (during which your target assignments are frozen on Day 2).
+* Upon resumption, the plan's `start_date` is shifted forward by **2 days**.
+* **Result:** You resume on **Day 3** (the next calendar day) with **0 minutes of behind-schedule deviation**. Your break days are completely bypassed in all status/estimation velocity metrics, and your estimated completion date slides forward by exactly 2 days.
