@@ -1,0 +1,22 @@
+PROBLEM: EMBEDDED YOUTUBE PLAYER LATENCY AND BUFFERING (PAUSES)
+
+1. Description of the Issue:
+   When students clicked a lecture to watch a video inside the workspace, the embedded YouTube iframe player took a long time to load (high initial latency) and periodically paused or buffered during playback.
+
+2. Root Causes Identified:
+   - Privacy-Shielded Domain Routing (youtube-nocookie.com):
+     The app embeds videos using "youtube-nocookie.com" for student privacy. However, this domain uses different CDN nodes that are less optimized or lack local caching in certain regions, causing slower connection speeds and lookup delays.
+   - Ad-Blockers & Tracker Defenses:
+     Extensions like uBlock Origin, Adblock Plus, or Brave Shields intercept background telemetry requests from the player, causing the stream connection to hang or pause while blocking pre-fetching data chunks.
+   - DNS Resolution Overhead:
+     The browser has to perform new DNS resolutions for YouTube's media servers when mounting the iframe, adding initial connection overhead.
+
+3. Optimization Applied (Option B):
+     Added DNS pre-fetching tags under `<head>` in index.html to pre-resolve DNS domains for the player and media CDNs (youtube.com, youtube-nocookie.com, and s.ytimg.com) before the user mounts the video component:
+     <link rel="dns-prefetch" href="https://www.youtube.com" />
+     <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+     <link rel="dns-prefetch" href="https://s.ytimg.com" />
+
+4. Additional Recommendations if buffering persists:
+     - Swap the domain in SubjectPage.jsx from "youtube-nocookie.com" to standard "youtube.com" for maximum speed.
+     - Temporarily pause adblockers on the local development domain (e.g. localhost) to allow unhindered video pre-fetching.
