@@ -13,6 +13,68 @@ import { getSubjects, updateSubject, deleteSubject, pauseSubject, resumeSubject 
 import { getBookmarks, addBookmark, deleteBookmark } from '../api/lectures'
 import AIAssistant from '../components/AIAssistant'
 
+const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
+  useEffect(() => {
+    let playerInitInterval
+    
+    const initPlayer = () => {
+      if (window.YT && window.YT.Player) {
+        clearInterval(playerInitInterval)
+        setTimeout(() => {
+          try {
+            playerRef.current = new window.YT.Player('yt-player-iframe', {
+              events: {
+                onReady: (event) => {
+                  playerRef.current = event.target
+                },
+                onError: (e) => {
+                  console.error("YT Player Error:", e)
+                }
+              }
+            })
+          } catch (err) {
+            console.error("Failed to initialize YT Player:", err)
+          }
+        }, 300)
+      }
+    }
+    
+    if (window.YT && window.YT.Player) {
+      initPlayer()
+    } else {
+      playerInitInterval = setInterval(initPlayer, 200)
+    }
+    
+    return () => {
+      clearInterval(playerInitInterval)
+      playerRef.current = null
+    }
+  }, [videoId, playerRef])
+
+  return (
+    <div 
+      style={{ 
+        position: 'relative', 
+        paddingBottom: '56.25%', 
+        height: 0, 
+        overflow: 'hidden', 
+        borderRadius: '8px', 
+        border: '2.5px solid var(--border)',
+        background: '#000000',
+        boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5)'
+      }}
+    >
+      <iframe
+        id="yt-player-iframe"
+        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    </div>
+  )
+})
+
 export default function SubjectPage() {
   const { id } = useParams()
   const subjectId = parseInt(id)
@@ -50,49 +112,6 @@ export default function SubjectPage() {
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
     }
   }, [])
-
-  // Initialize YT Player on iframe when activeLecture changes
-  useEffect(() => {
-    if (!activeLecture) {
-      playerRef.current = null
-      return
-    }
-    
-    let playerInitInterval
-    
-    const initPlayer = () => {
-      if (window.YT && window.YT.Player) {
-        clearInterval(playerInitInterval)
-        setTimeout(() => {
-          try {
-            playerRef.current = new window.YT.Player('yt-player-iframe', {
-              events: {
-                onReady: (event) => {
-                  playerRef.current = event.target
-                },
-                onError: (e) => {
-                  console.error("YT Player Error:", e)
-                }
-              }
-            })
-          } catch (err) {
-            console.error("Failed to initialize YT Player:", err)
-          }
-        }, 300)
-      }
-    }
-    
-    if (window.YT && window.YT.Player) {
-      initPlayer()
-    } else {
-      playerInitInterval = setInterval(initPlayer, 200)
-    }
-    
-    return () => {
-      clearInterval(playerInitInterval)
-      playerRef.current = null
-    }
-  }, [activeLecture])
 
   // Fetch bookmarks for active lecture
   useEffect(() => {
@@ -490,26 +509,7 @@ export default function SubjectPage() {
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'stretch' }}>
             {/* Left Column: Player (65%) */}
             <div style={{ flex: '1 1 60%', minWidth: '320px', display: 'flex', flexDirection: 'column' }}>
-              <div 
-                style={{ 
-                  position: 'relative', 
-                  paddingBottom: '56.25%', 
-                  height: 0, 
-                  overflow: 'hidden', 
-                  borderRadius: '8px', 
-                  border: '2.5px solid var(--border)',
-                  background: '#000000',
-                  boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5)'
-                }}
-              >
-                <iframe
-                  id="yt-player-iframe"
-                  src={`https://www.youtube.com/embed/${activeLecture.video_id}?autoplay=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
+              <YouTubePlayer videoId={activeLecture.video_id} playerRef={playerRef} />
             </div>
 
             {/* Right Column: Bookmarks (35%) */}
