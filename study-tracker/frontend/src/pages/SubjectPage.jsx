@@ -14,15 +14,33 @@ import { getBookmarks, addBookmark, deleteBookmark } from '../api/lectures'
 import AIAssistant from '../components/AIAssistant'
 
 const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
+  const containerRef = React.useRef(null)
+
   useEffect(() => {
-    let playerInitInterval
-    
+    let player = null
+    let isCancelled = false
+    let playerInitInterval = null
+
     const initPlayer = () => {
+      if (isCancelled) return
       if (window.YT && window.YT.Player) {
-        clearInterval(playerInitInterval)
-        setTimeout(() => {
+        if (playerInitInterval) {
+          clearInterval(playerInitInterval)
+        }
+        
+        if (containerRef.current) {
+          // Clear any previous elements and recreate the iframe target div
+          containerRef.current.innerHTML = ''
+          const playerDiv = document.createElement('div')
+          playerDiv.style.width = '100%'
+          playerDiv.style.height = '100%'
+          playerDiv.style.position = 'absolute'
+          playerDiv.style.top = '0'
+          playerDiv.style.left = '0'
+          containerRef.current.appendChild(playerDiv)
+
           try {
-            playerRef.current = new window.YT.Player('yt-player-iframe', {
+            player = new window.YT.Player(playerDiv, {
               videoId: videoId,
               playerVars: {
                 autoplay: 0,
@@ -32,7 +50,9 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
               },
               events: {
                 onReady: (event) => {
-                  playerRef.current = event.target
+                  if (!isCancelled) {
+                    playerRef.current = event.target
+                  }
                 },
                 onError: (e) => {
                   console.error("YT Player Error:", e)
@@ -42,21 +62,24 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
           } catch (err) {
             console.error("Failed to initialize YT Player:", err)
           }
-        }, 100)
+        }
       }
     }
-    
+
     if (window.YT && window.YT.Player) {
       initPlayer()
     } else {
       playerInitInterval = setInterval(initPlayer, 200)
     }
-    
+
     return () => {
-      clearInterval(playerInitInterval)
-      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+      isCancelled = true
+      if (playerInitInterval) {
+        clearInterval(playerInitInterval)
+      }
+      if (player && typeof player.destroy === 'function') {
         try {
-          playerRef.current.destroy()
+          player.destroy()
         } catch (e) {
           console.error("Error destroying YT Player:", e)
         }
@@ -79,7 +102,7 @@ const YouTubePlayer = React.memo(({ videoId, playerRef }) => {
       }}
     >
       <div
-        id="yt-player-iframe"
+        ref={containerRef}
         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
       />
     </div>
